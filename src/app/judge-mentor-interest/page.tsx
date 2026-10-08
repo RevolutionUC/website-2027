@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
 import { supabase } from "@/lib/supabase";
 import { COUNTRY_CODES } from "./countryCodes";
@@ -54,6 +54,9 @@ interface Errors {
 
 export default function JudgeMentorInterestPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  // Ref guard blocks double-clicks/Enter presses that fire before React re-renders
+  const submittingRef = useRef(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [linkedIn, setLinkedIn] = useState("");
@@ -107,6 +110,7 @@ export default function JudgeMentorInterestPage() {
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submittingRef.current) return;
     const next: Errors = {};
     const countryCode =
       COUNTRY_CODES.find((c) => c.iso2 === countryIso2)?.dialCode ?? COUNTRY_CODES[0].dialCode;
@@ -152,6 +156,9 @@ export default function JudgeMentorInterestPage() {
         ? `Other: ${otherAvailability.trim()}`
         : availability;
 
+    submittingRef.current = true;
+    setSubmitting(true);
+
     const { error: dbError } = await supabase.from("judge_mentor_interest").insert({
       full_name: fullName.trim(),
       email: email.trim(),
@@ -168,6 +175,8 @@ export default function JudgeMentorInterestPage() {
     });
 
     if (dbError) {
+      submittingRef.current = false;
+      setSubmitting(false);
       setErrors({ email: "Something went wrong, please try again." });
       return;
     }
@@ -524,9 +533,10 @@ export default function JudgeMentorInterestPage() {
 
               <button
                 type="submit"
-                className="mt-2 w-full rounded-md border-2 border-[#19E363] bg-[#151477] px-6 py-3 font-semibold text-[#EDF6FF] transition-all duration-200 hover:bg-[#19E363] hover:text-[#151477] active:scale-[0.98]"
+                disabled={submitting}
+                className="mt-2 w-full rounded-md border-2 border-[#19E363] bg-[#151477] px-6 py-3 font-semibold text-[#EDF6FF] transition-all duration-200 hover:bg-[#19E363] hover:text-[#151477] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[#151477] disabled:hover:text-[#EDF6FF] disabled:active:scale-100"
               >
-                Submit
+                {submitting ? "Submitting..." : "Submit"}
               </button>
             </form>
           )}
