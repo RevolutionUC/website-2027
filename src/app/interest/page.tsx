@@ -127,6 +127,8 @@ const OPTIONAL_INPUT_CLASS =
   "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
 
 function OptionalHackerFields() {
+  const [showOtherDiet, setShowOtherDiet] = useState(false);
+
   return (
     <section aria-labelledby="optional-details-heading" className="flex flex-col gap-5">
       <h2 id="optional-details-heading" className="text-lg font-semibold text-[#151477]">
@@ -249,6 +251,90 @@ function OptionalHackerFields() {
           <p id="optional-demographics-help" className="text-sm text-gray-600">
             You can leave these questions blank or enter Prefer not to answer.
           </p>
+        </div>
+      </details>
+      <details className="rounded-lg border border-[#B7D9FF] p-4">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
+          Optional food, shirts, and accessibility
+        </summary>
+        <div className="mt-4 flex flex-col gap-5">
+          <fieldset>
+            <legend className="mb-1 font-semibold text-gray-900">Dietary restrictions</legend>
+            <div className="flex flex-col">
+              {[
+                "None",
+                "Vegetarian",
+                "Vegan",
+                "Halal",
+                "Kosher",
+                "Gluten-free",
+                "Other",
+                "Prefer to discuss privately",
+              ].map((option) => (
+                <label
+                  key={option}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 text-gray-900"
+                >
+                  <input
+                    type="checkbox"
+                    name="dietRestrictions"
+                    value={option}
+                    className="h-4 w-4 shrink-0 accent-[#151477]"
+                    onChange={(event) => {
+                      if (option === "Other") setShowOtherDiet(event.target.checked);
+                    }}
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {showOtherDiet && (
+            <InputField
+              name="otherDiet"
+              label="Other dietary restrictions"
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          )}
+          <div>
+            <label htmlFor="foodAllergies" className="mb-1 block font-semibold text-gray-900">
+              Food allergies
+            </label>
+            <textarea
+              id="foodAllergies"
+              name="foodAllergies"
+              rows={3}
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="accessibilityNeeds" className="mb-1 block font-semibold text-gray-900">
+              Accessibility or accommodation requests
+            </label>
+            <p id="accessibility-help" className="mb-2 text-sm text-gray-600">
+              Tell us what assistance you need. You do not need to share a diagnosis.
+            </p>
+            <textarea
+              id="accessibilityNeeds"
+              name="accessibilityNeeds"
+              rows={3}
+              aria-describedby="accessibility-help"
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="shirtSize" className="mb-1 block font-semibold text-gray-900">
+              Shirt size
+            </label>
+            <select id="shirtSize" name="shirtSize" className={OPTIONAL_INPUT_CLASS}>
+              <option value="">Select (optional)…</option>
+              {["XS", "S", "M", "L", "XL", "2XL", "3XL", "No shirt"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </details>
     </section>
