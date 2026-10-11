@@ -128,6 +128,9 @@ const OPTIONAL_INPUT_CLASS =
 
 function OptionalHackerFields() {
   const [showOtherDiet, setShowOtherDiet] = useState(false);
+  const [resumeError, setResumeError] = useState("");
+  const [resumeName, setResumeName] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <section aria-labelledby="optional-details-heading" className="flex flex-col gap-5">
@@ -135,8 +138,8 @@ function OptionalHackerFields() {
         Optional details
       </h2>
       <p className="text-sm text-gray-700">
-        These optional details are not sent or saved with this interest form yet. You can submit
-        your interest without completing them.
+        These optional details, resume, and recruiting preferences are not sent or saved with this
+        interest form yet. You can submit your interest without completing them.
       </p>
       <details className="rounded-lg border border-[#B7D9FF] p-4">
         <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
@@ -335,6 +338,86 @@ function OptionalHackerFields() {
               ))}
             </select>
           </div>
+        </div>
+      </details>
+      <details className="rounded-lg border border-[#B7D9FF] p-4">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
+          Optional resume and recruiting preferences
+        </summary>
+        <div className="mt-4 flex flex-col gap-5">
+          <div>
+            <label htmlFor="resume" className="mb-1 block font-semibold text-gray-900">
+              Choose a PDF resume
+            </label>
+            <p id="resume-help" className="mb-2 text-sm text-gray-600">
+              PDF only, up to 4 MB. Selecting a file does not upload it yet.
+            </p>
+            <input
+              ref={resumeInputRef}
+              id="resume"
+              name="resume"
+              type="file"
+              accept=".pdf,application/pdf"
+              aria-describedby={resumeError ? "resume-help resume-error" : "resume-help"}
+              aria-invalid={Boolean(resumeError)}
+              className={OPTIONAL_INPUT_CLASS}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                setResumeError("");
+                setResumeName("");
+                if (!file) return;
+                if (
+                  !file.name.toLowerCase().endsWith(".pdf") ||
+                  (file.type && file.type !== "application/pdf")
+                ) {
+                  setResumeError("Please choose a PDF file.");
+                  event.currentTarget.value = "";
+                } else if (file.size > 4 * 1024 * 1024) {
+                  setResumeError("Please choose a PDF no larger than 4 MB.");
+                  event.currentTarget.value = "";
+                } else {
+                  setResumeName(file.name);
+                }
+              }}
+            />
+            {resumeError && (
+              <p id="resume-error" role="alert" className="mt-2 text-sm text-red-600">
+                {resumeError}
+              </p>
+            )}
+            {resumeName && (
+              <button
+                type="button"
+                className="mt-2 min-h-11 rounded-md border border-[#B7D9FF] px-3 py-2 text-sm font-semibold text-[#151477] hover:bg-[#EDF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]"
+                onClick={() => {
+                  if (resumeInputRef.current) {
+                    resumeInputRef.current.value = "";
+                    resumeInputRef.current.focus();
+                  }
+                  setResumeName("");
+                  setResumeError("");
+                }}
+              >
+                Remove selected resume
+              </button>
+            )}
+          </div>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
+            <input
+              type="checkbox"
+              name="sponsorResumeConsent"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
+            />
+            I want my resume shared with authorized RevUC sponsors for recruiting.
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
+            <input
+              type="checkbox"
+              name="sponsorContactConsent"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
+            />
+            RevUC sponsors may contact me about recruiting opportunities.
+          </label>
         </div>
       </details>
     </section>
