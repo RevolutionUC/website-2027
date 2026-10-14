@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
 import { supabase } from "@/lib/supabase";
 import { SCHOOLS } from "./schools";
@@ -122,6 +122,307 @@ function SchoolCombobox({
     </div>
   );
 }
+
+const OPTIONAL_INPUT_CLASS =
+  "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
+
+const OptionalHackerFields = memo(function OptionalHackerFields() {
+  const [showOtherDiet, setShowOtherDiet] = useState(false);
+  const [resumeError, setResumeError] = useState("");
+  const [resumeName, setResumeName] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <section aria-labelledby="optional-details-heading" className="flex flex-col gap-5">
+      <h2 id="optional-details-heading" className="text-lg font-semibold text-[#151477]">
+        Optional details
+      </h2>
+      <p className="text-sm text-gray-700">
+        These optional details, resume, and recruiting preferences are not sent or saved with this
+        interest form yet. You can submit your interest without completing them.
+      </p>
+      <details className="rounded-lg border border-[#B7D9FF] p-4">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
+          Optional profile and team questions
+        </summary>
+        <div className="mt-4 flex flex-col gap-5">
+          <InputField
+            name="preferredName"
+            label="Preferred name"
+            autoComplete="nickname"
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField name="pronouns" label="Pronouns" className={OPTIONAL_INPUT_CLASS} />
+          <InputField
+            name="major"
+            label="Major or field of study"
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField
+            name="graduationYear"
+            label="Expected graduation year"
+            type="number"
+            inputMode="numeric"
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <div>
+            <label htmlFor="hackathons" className="mb-1 block font-semibold text-gray-900">
+              Previous hackathons
+            </label>
+            <select id="hackathons" name="hackathons" className={OPTIONAL_INPUT_CLASS}>
+              <option value="">Select (optional)…</option>
+              {["First hackathon", "1–2", "3–5", "6+"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="skills" className="mb-1 block font-semibold text-gray-900">
+              Skills or technologies you want to work with
+            </label>
+            <textarea id="skills" name="skills" rows={3} className={OPTIONAL_INPUT_CLASS} />
+          </div>
+          <div>
+            <label htmlFor="workshopInterests" className="mb-1 block font-semibold text-gray-900">
+              Workshops you would like to attend
+            </label>
+            <textarea
+              id="workshopInterests"
+              name="workshopInterests"
+              rows={3}
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="teamStatus" className="mb-1 block font-semibold text-gray-900">
+              Team plans
+            </label>
+            <select id="teamStatus" name="teamStatus" className={OPTIONAL_INPUT_CLASS}>
+              <option value="">Select (optional)…</option>
+              {[
+                "Looking for a team",
+                "Already have a team",
+                "Open to more teammates",
+                "Prefer to work solo",
+                "Not sure yet",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <InputField
+            name="githubUrl"
+            label="GitHub profile"
+            type="url"
+            spellCheck={false}
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField
+            name="linkedinUrl"
+            label="LinkedIn or portfolio"
+            type="url"
+            spellCheck={false}
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField
+            name="discordHandle"
+            label="Discord handle"
+            spellCheck={false}
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField
+            name="referralSource"
+            label="How did you hear about RevUC?"
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField
+            name="gender"
+            label="Gender"
+            aria-describedby="optional-demographics-help"
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <InputField
+            name="raceEthnicity"
+            label="Race or ethnicity"
+            aria-describedby="optional-demographics-help"
+            className={OPTIONAL_INPUT_CLASS}
+          />
+          <p id="optional-demographics-help" className="text-sm text-gray-600">
+            You can leave these questions blank or enter Prefer not to answer.
+          </p>
+        </div>
+      </details>
+      <details className="rounded-lg border border-[#B7D9FF] p-4">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
+          Optional food, shirts, and accessibility
+        </summary>
+        <div className="mt-4 flex flex-col gap-5">
+          <fieldset>
+            <legend className="mb-1 font-semibold text-gray-900">Dietary restrictions</legend>
+            <div className="flex flex-col">
+              {[
+                "None",
+                "Vegetarian",
+                "Vegan",
+                "Halal",
+                "Kosher",
+                "Gluten-free",
+                "Other",
+                "Prefer to discuss privately",
+              ].map((option) => (
+                <label
+                  key={option}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 text-gray-900"
+                >
+                  <input
+                    type="checkbox"
+                    name="dietRestrictions"
+                    value={option}
+                    className="h-4 w-4 shrink-0 accent-[#151477]"
+                    onChange={(event) => {
+                      if (option === "Other") setShowOtherDiet(event.target.checked);
+                    }}
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {showOtherDiet && (
+            <InputField
+              name="otherDiet"
+              label="Other dietary restrictions"
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          )}
+          <div>
+            <label htmlFor="foodAllergies" className="mb-1 block font-semibold text-gray-900">
+              Food allergies
+            </label>
+            <textarea
+              id="foodAllergies"
+              name="foodAllergies"
+              rows={3}
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="accessibilityNeeds" className="mb-1 block font-semibold text-gray-900">
+              Accessibility or accommodation requests
+            </label>
+            <p id="accessibility-help" className="mb-2 text-sm text-gray-600">
+              Tell us what assistance you need. You do not need to share a diagnosis.
+            </p>
+            <textarea
+              id="accessibilityNeeds"
+              name="accessibilityNeeds"
+              rows={3}
+              aria-describedby="accessibility-help"
+              className={OPTIONAL_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="shirtSize" className="mb-1 block font-semibold text-gray-900">
+              Shirt size
+            </label>
+            <select id="shirtSize" name="shirtSize" className={OPTIONAL_INPUT_CLASS}>
+              <option value="">Select (optional)…</option>
+              {["XS", "S", "M", "L", "XL", "2XL", "3XL", "No shirt"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </details>
+      <details className="rounded-lg border border-[#B7D9FF] p-4">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
+          Optional resume and recruiting preferences
+        </summary>
+        <div className="mt-4 flex flex-col gap-5">
+          <div>
+            <label htmlFor="resume" className="mb-1 block font-semibold text-gray-900">
+              Choose a PDF resume
+            </label>
+            <p id="resume-help" className="mb-2 text-sm text-gray-600">
+              PDF only, up to 4 MB. Selecting a file does not upload it yet.
+            </p>
+            <input
+              ref={resumeInputRef}
+              id="resume"
+              name="resume"
+              type="file"
+              accept=".pdf,application/pdf"
+              aria-describedby={resumeError ? "resume-help resume-error" : "resume-help"}
+              aria-invalid={Boolean(resumeError)}
+              className={OPTIONAL_INPUT_CLASS}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                setResumeError("");
+                setResumeName("");
+                if (!file) return;
+                if (
+                  !file.name.toLowerCase().endsWith(".pdf") ||
+                  (file.type && file.type !== "application/pdf")
+                ) {
+                  setResumeError("Please choose a PDF file.");
+                  event.currentTarget.value = "";
+                } else if (file.size > 4 * 1024 * 1024) {
+                  setResumeError("Please choose a PDF no larger than 4 MB.");
+                  event.currentTarget.value = "";
+                } else {
+                  setResumeName(file.name);
+                }
+              }}
+            />
+            {resumeError && (
+              <p id="resume-error" role="alert" className="mt-2 text-sm text-red-600">
+                {resumeError}
+              </p>
+            )}
+            {resumeName && (
+              <button
+                type="button"
+                className="mt-2 min-h-11 rounded-md border border-[#B7D9FF] px-3 py-2 text-sm font-semibold text-[#151477] hover:bg-[#EDF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]"
+                onClick={() => {
+                  if (resumeInputRef.current) {
+                    resumeInputRef.current.value = "";
+                    resumeInputRef.current.focus();
+                  }
+                  setResumeName("");
+                  setResumeError("");
+                }}
+              >
+                Remove selected resume
+              </button>
+            )}
+          </div>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
+            <input
+              type="checkbox"
+              name="sponsorResumeConsent"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
+            />
+            I want my resume shared with authorized RevUC sponsors for recruiting.
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
+            <input
+              type="checkbox"
+              name="sponsorContactConsent"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
+            />
+            RevUC sponsors may contact me about recruiting opportunities.
+          </label>
+        </div>
+      </details>
+    </section>
+  );
+});
 
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -520,6 +821,8 @@ export default function InterestPage() {
                   </label>
                 </div>
               </div>
+
+              <OptionalHackerFields />
 
               <button
                 type="submit"
