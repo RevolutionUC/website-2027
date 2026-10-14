@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
 import { supabase } from "@/lib/supabase";
 import { SCHOOLS } from "./schools";
@@ -126,7 +126,7 @@ function SchoolCombobox({
 const OPTIONAL_INPUT_CLASS =
   "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
 
-function OptionalHackerFields() {
+const OptionalHackerFields = memo(function OptionalHackerFields() {
   const [showOtherDiet, setShowOtherDiet] = useState(false);
   const [resumeError, setResumeError] = useState("");
   const [resumeName, setResumeName] = useState("");
@@ -422,7 +422,7 @@ function OptionalHackerFields() {
       </details>
     </section>
   );
-}
+});
 
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
