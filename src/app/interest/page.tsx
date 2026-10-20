@@ -123,84 +123,152 @@ function SchoolCombobox({
   );
 }
 
-const OPTIONAL_INPUT_CLASS =
+const REGISTRATION_INPUT_CLASS =
   "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
 
-const OptionalHackerFields = memo(function OptionalHackerFields() {
+const RegistrationHackerFields = memo(function RegistrationHackerFields({
+  errors,
+  setErrors,
+}: {
+  errors: Record<string, string>;
+  setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}) {
   const [showOtherDiet, setShowOtherDiet] = useState(false);
   const [resumeError, setResumeError] = useState("");
   const [resumeName, setResumeName] = useState("");
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <section aria-labelledby="optional-details-heading" className="flex flex-col gap-5">
-      <h2 id="optional-details-heading" className="text-lg font-semibold text-[#151477]">
-        Optional details
+    <section
+      aria-labelledby="registration-details-heading"
+      className="flex flex-col gap-5"
+      onChange={(event) => {
+        const name = (event.target as HTMLInputElement).name;
+        if (
+          name &&
+          (name !== "dietRestrictions" ||
+            event.currentTarget.querySelector('input[name="dietRestrictions"]:checked'))
+        ) {
+          setErrors((previous) => {
+            if (!previous[name]) return previous;
+            const next = { ...previous };
+            delete next[name];
+            return next;
+          });
+        }
+      }}
+    >
+      <h2 id="registration-details-heading" className="text-lg font-semibold text-[#151477]">
+        Registration details
       </h2>
       <p className="text-sm text-gray-700">
-        These optional details, resume, and recruiting preferences are not sent or saved with this
-        interest form yet. You can submit your interest without completing them.
+        Complete the questions below. Enter None for food allergies or accommodation requests if
+        applicable. Recruiting permissions are optional. These new answers and the selected resume
+        are not sent or saved with this interest form yet.
       </p>
-      <details className="rounded-lg border border-[#B7D9FF] p-4">
+      <details open className="rounded-lg border border-[#B7D9FF] p-4">
         <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
-          Optional profile and team questions
+          Profile and team questions
         </summary>
         <div className="mt-4 flex flex-col gap-5">
           <InputField
             name="preferredName"
             label="Preferred name"
             autoComplete="nickname"
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.preferredName)}
+            error={errors.preferredName}
+            className={REGISTRATION_INPUT_CLASS}
           />
-          <InputField name="pronouns" label="Pronouns" className={OPTIONAL_INPUT_CLASS} />
+          <InputField
+            name="pronouns"
+            label="Pronouns"
+            required
+            aria-invalid={Boolean(errors.pronouns)}
+            error={errors.pronouns}
+            className={REGISTRATION_INPUT_CLASS}
+          />
           <InputField
             name="major"
             label="Major or field of study"
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.major)}
+            error={errors.major}
+            className={REGISTRATION_INPUT_CLASS}
           />
           <InputField
             name="graduationYear"
             label="Expected graduation year"
             type="number"
             inputMode="numeric"
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.graduationYear)}
+            error={errors.graduationYear}
+            className={REGISTRATION_INPUT_CLASS}
           />
           <div>
             <label htmlFor="hackathons" className="mb-1 block font-semibold text-gray-900">
-              Previous hackathons
+              Previous hackathons<span className="text-red-600">*</span>
             </label>
-            <select id="hackathons" name="hackathons" className={OPTIONAL_INPUT_CLASS}>
-              <option value="">Select (optional)…</option>
+            <select
+              id="hackathons"
+              name="hackathons"
+              required
+              aria-invalid={Boolean(errors.hackathons)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
               {["First hackathon", "1–2", "3–5", "6+"].map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
+            {errors.hackathons && <p className="mt-1 text-sm text-red-600">{errors.hackathons}</p>}
           </div>
           <div>
             <label htmlFor="skills" className="mb-1 block font-semibold text-gray-900">
               Skills or technologies you want to work with
+              <span className="text-red-600">*</span>
             </label>
-            <textarea id="skills" name="skills" rows={3} className={OPTIONAL_INPUT_CLASS} />
+            <textarea
+              id="skills"
+              name="skills"
+              rows={3}
+              required
+              aria-invalid={Boolean(errors.skills)}
+              className={REGISTRATION_INPUT_CLASS}
+            />
+            {errors.skills && <p className="mt-1 text-sm text-red-600">{errors.skills}</p>}
           </div>
           <div>
             <label htmlFor="workshopInterests" className="mb-1 block font-semibold text-gray-900">
-              Workshops you would like to attend
+              Workshops you would like to attend<span className="text-red-600">*</span>
             </label>
             <textarea
               id="workshopInterests"
               name="workshopInterests"
               rows={3}
-              className={OPTIONAL_INPUT_CLASS}
+              required
+              aria-invalid={Boolean(errors.workshopInterests)}
+              className={REGISTRATION_INPUT_CLASS}
             />
+            {errors.workshopInterests && (
+              <p className="mt-1 text-sm text-red-600">{errors.workshopInterests}</p>
+            )}
           </div>
           <div>
             <label htmlFor="teamStatus" className="mb-1 block font-semibold text-gray-900">
-              Team plans
+              Team plans<span className="text-red-600">*</span>
             </label>
-            <select id="teamStatus" name="teamStatus" className={OPTIONAL_INPUT_CLASS}>
-              <option value="">Select (optional)…</option>
+            <select
+              id="teamStatus"
+              name="teamStatus"
+              required
+              aria-invalid={Boolean(errors.teamStatus)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
               {[
                 "Looking for a team",
                 "Already have a team",
@@ -213,67 +281,81 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
                 </option>
               ))}
             </select>
+            {errors.teamStatus && <p className="mt-1 text-sm text-red-600">{errors.teamStatus}</p>}
           </div>
           <InputField
             name="githubUrl"
             label="GitHub profile"
             type="url"
             spellCheck={false}
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.githubUrl)}
+            error={errors.githubUrl}
+            className={REGISTRATION_INPUT_CLASS}
           />
           <InputField
             name="linkedinUrl"
             label="LinkedIn or portfolio"
             type="url"
             spellCheck={false}
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.linkedinUrl)}
+            error={errors.linkedinUrl}
+            className={REGISTRATION_INPUT_CLASS}
           />
           <InputField
             name="discordHandle"
             label="Discord handle"
             spellCheck={false}
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.discordHandle)}
+            error={errors.discordHandle}
+            className={REGISTRATION_INPUT_CLASS}
           />
           <InputField
             name="referralSource"
             label="How did you hear about RevUC?"
-            className={OPTIONAL_INPUT_CLASS}
+            required
+            aria-invalid={Boolean(errors.referralSource)}
+            error={errors.referralSource}
+            className={REGISTRATION_INPUT_CLASS}
           />
           <div>
             <label htmlFor="gender" className="mb-1 block font-semibold text-gray-900">
-              Gender
+              Gender<span className="text-red-600">*</span>
             </label>
             <select
               id="gender"
               name="gender"
-              aria-describedby="optional-demographics-help"
-              className={OPTIONAL_INPUT_CLASS}
+              required
+              aria-invalid={Boolean(errors.gender)}
+              aria-describedby="demographics-help"
+              className={REGISTRATION_INPUT_CLASS}
             >
-              <option value="">Select (optional)…</option>
-              {[
-                "Man",
-                "Woman",
-                "Non-binary",
-                "Another gender",
-                "Prefer not to answer",
-              ].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+              <option value="">Select…</option>
+              {["Man", "Woman", "Non-binary", "Another gender", "Prefer not to answer"].map(
+                (option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ),
+              )}
             </select>
+            {errors.gender && <p className="mt-1 text-sm text-red-600">{errors.gender}</p>}
           </div>
           <div>
             <label htmlFor="raceEthnicity" className="mb-1 block font-semibold text-gray-900">
-              Race or ethnicity
+              Race or ethnicity<span className="text-red-600">*</span>
             </label>
             <select
               id="raceEthnicity"
               name="raceEthnicity"
-              aria-describedby="optional-demographics-help"
-              className={OPTIONAL_INPUT_CLASS}
+              required
+              aria-invalid={Boolean(errors.raceEthnicity)}
+              aria-describedby="demographics-help"
+              className={REGISTRATION_INPUT_CLASS}
             >
-              <option value="">Select (optional)…</option>
+              <option value="">Select…</option>
               {[
                 "Asian Indian",
                 "Black or African",
@@ -299,19 +381,24 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
                 </option>
               ))}
             </select>
+            {errors.raceEthnicity && (
+              <p className="mt-1 text-sm text-red-600">{errors.raceEthnicity}</p>
+            )}
           </div>
-          <p id="optional-demographics-help" className="text-sm text-gray-600">
-            You can leave these questions blank or select Prefer not to answer.
+          <p id="demographics-help" className="text-sm text-gray-600">
+            Select Prefer not to answer if you do not want to disclose these details.
           </p>
         </div>
       </details>
-      <details className="rounded-lg border border-[#B7D9FF] p-4">
+      <details open className="rounded-lg border border-[#B7D9FF] p-4">
         <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
-          Optional food, shirts, and accessibility
+          Food, shirts, and accessibility
         </summary>
         <div className="mt-4 flex flex-col gap-5">
           <fieldset>
-            <legend className="mb-1 font-semibold text-gray-900">Dietary restrictions</legend>
+            <legend className="mb-1 font-semibold text-gray-900">
+              Dietary restrictions<span className="text-red-600">*</span>
+            </legend>
             <div className="flex flex-col">
               {[
                 "None",
@@ -340,28 +427,39 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
                 </label>
               ))}
             </div>
+            {errors.dietRestrictions && (
+              <p className="mt-1 text-sm text-red-600">{errors.dietRestrictions}</p>
+            )}
           </fieldset>
           {showOtherDiet && (
             <InputField
               name="otherDiet"
               label="Other dietary restrictions"
-              className={OPTIONAL_INPUT_CLASS}
+              required
+              aria-invalid={Boolean(errors.otherDiet)}
+              error={errors.otherDiet}
+              className={REGISTRATION_INPUT_CLASS}
             />
           )}
           <div>
             <label htmlFor="foodAllergies" className="mb-1 block font-semibold text-gray-900">
-              Food allergies
+              Food allergies<span className="text-red-600">*</span>
             </label>
             <textarea
               id="foodAllergies"
               name="foodAllergies"
               rows={3}
-              className={OPTIONAL_INPUT_CLASS}
+              required
+              aria-invalid={Boolean(errors.foodAllergies)}
+              className={REGISTRATION_INPUT_CLASS}
             />
+            {errors.foodAllergies && (
+              <p className="mt-1 text-sm text-red-600">{errors.foodAllergies}</p>
+            )}
           </div>
           <div>
             <label htmlFor="accessibilityNeeds" className="mb-1 block font-semibold text-gray-900">
-              Accessibility or accommodation requests
+              Accessibility or accommodation requests<span className="text-red-600">*</span>
             </label>
             <p id="accessibility-help" className="mb-2 text-sm text-gray-600">
               Tell us what assistance you need. You do not need to share a diagnosis.
@@ -370,33 +468,45 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
               id="accessibilityNeeds"
               name="accessibilityNeeds"
               rows={3}
+              required
+              aria-invalid={Boolean(errors.accessibilityNeeds)}
               aria-describedby="accessibility-help"
-              className={OPTIONAL_INPUT_CLASS}
+              className={REGISTRATION_INPUT_CLASS}
             />
+            {errors.accessibilityNeeds && (
+              <p className="mt-1 text-sm text-red-600">{errors.accessibilityNeeds}</p>
+            )}
           </div>
           <div>
             <label htmlFor="shirtSize" className="mb-1 block font-semibold text-gray-900">
-              Shirt size
+              Shirt size<span className="text-red-600">*</span>
             </label>
-            <select id="shirtSize" name="shirtSize" className={OPTIONAL_INPUT_CLASS}>
-              <option value="">Select (optional)…</option>
+            <select
+              id="shirtSize"
+              name="shirtSize"
+              required
+              aria-invalid={Boolean(errors.shirtSize)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
               {["XS", "S", "M", "L", "XL", "2XL", "3XL", "No shirt"].map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
+            {errors.shirtSize && <p className="mt-1 text-sm text-red-600">{errors.shirtSize}</p>}
           </div>
         </div>
       </details>
-      <details className="rounded-lg border border-[#B7D9FF] p-4">
+      <details open className="rounded-lg border border-[#B7D9FF] p-4">
         <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
-          Optional resume and recruiting preferences
+          Resume and recruiting preferences
         </summary>
         <div className="mt-4 flex flex-col gap-5">
           <div>
             <label htmlFor="resume" className="mb-1 block font-semibold text-gray-900">
-              Choose a PDF resume
+              Choose a PDF resume<span className="text-red-600">*</span>
             </label>
             <p id="resume-help" className="mb-2 text-sm text-gray-600">
               PDF only, up to 4 MB. Selecting a file does not upload it yet.
@@ -407,9 +517,12 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
               name="resume"
               type="file"
               accept=".pdf,application/pdf"
-              aria-describedby={resumeError ? "resume-help resume-error" : "resume-help"}
-              aria-invalid={Boolean(resumeError)}
-              className={OPTIONAL_INPUT_CLASS}
+              required
+              aria-describedby={
+                resumeError || errors.resume ? "resume-help resume-error" : "resume-help"
+              }
+              aria-invalid={Boolean(resumeError || errors.resume)}
+              className={REGISTRATION_INPUT_CLASS}
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
                 setResumeError("");
@@ -429,9 +542,9 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
                 }
               }}
             />
-            {resumeError && (
+            {(resumeError || errors.resume) && (
               <p id="resume-error" role="alert" className="mt-2 text-sm text-red-600">
-                {resumeError}
+                {resumeError || errors.resume}
               </p>
             )}
             {resumeName && (
@@ -472,7 +585,6 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
     </section>
   );
 });
-
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -488,6 +600,7 @@ export default function InterestPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const [additionalErrors, setAdditionalErrors] = useState<Record<string, string>>({});
 
   function handleNameChange(setter: (v: string) => void, field: keyof Errors) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,8 +656,38 @@ export default function InterestPage() {
     if (!mlhCoc) next.mlhCoc = "You must agree to the MLH Code of Conduct";
     if (!mlhSharing) next.mlhSharing = "You must authorize MLH information sharing";
 
-    if (Object.keys(next).length > 0) {
+    const details = e.currentTarget.querySelector<HTMLElement>(
+      '[aria-labelledby="registration-details-heading"]'
+    );
+    const nextAdditional: Record<string, string> = {};
+    if (details) {
+      const requiredFields = details.querySelectorAll<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >("[required]");
+      for (const field of requiredFields) {
+        if (field.validity.valueMissing || (field.type !== "file" && !field.value.trim())) {
+          nextAdditional[field.name] = "This answer is required";
+        } else if (!field.validity.valid) {
+          nextAdditional[field.name] = "Please enter a valid value";
+        }
+      }
+      if (!details.querySelector('input[name="dietRestrictions"]:checked')) {
+        nextAdditional.dietRestrictions = "Please select a dietary restriction or None";
+      }
+    }
+    setAdditionalErrors(nextAdditional);
+
+    if (Object.keys(next).length > 0 || Object.keys(nextAdditional).length > 0) {
       setErrors(next);
+      if (Object.keys(next).length === 0 && details) {
+        const firstInvalid = Array.from(
+          details.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+            "[name]"
+          )
+        ).find((field) => nextAdditional[field.name]);
+        firstInvalid?.closest("details")?.setAttribute("open", "");
+        requestAnimationFrame(() => firstInvalid?.focus());
+      }
       return;
     }
 
@@ -871,7 +1014,7 @@ export default function InterestPage() {
                 </div>
               </div>
 
-              <OptionalHackerFields />
+              <RegistrationHackerFields errors={additionalErrors} setErrors={setAdditionalErrors} />
 
               <button
                 type="submit"
