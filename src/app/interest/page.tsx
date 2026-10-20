@@ -127,9 +127,20 @@ const REGISTRATION_INPUT_CLASS =
   "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
 
 const RegistrationHackerFields = memo(function RegistrationHackerFields({
+  section,
   errors,
   setErrors,
 }: {
+  section:
+    | "identity"
+    | "education"
+    | "referral"
+    | "demographics"
+    | "logistics"
+    | "technical"
+    | "social"
+    | "resume"
+    | "sponsor";
   errors: Record<string, string>;
   setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
@@ -139,8 +150,8 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <section
-      aria-labelledby="registration-details-heading"
+    <div
+      data-registration-fields
       className="flex flex-col gap-5"
       onChange={(event) => {
         const name = (event.target as HTMLInputElement).name;
@@ -158,19 +169,8 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
         }
       }}
     >
-      <h2 id="registration-details-heading" className="text-lg font-semibold text-[#151477]">
-        Registration details
-      </h2>
-      <p className="text-sm text-gray-700">
-        Complete the questions below. Enter None for food allergies or accommodation requests if
-        applicable. Recruiting permissions are optional. These new answers and the selected resume
-        are not sent or saved with this interest form yet.
-      </p>
-      <details open className="rounded-lg border border-[#B7D9FF] p-4">
-        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
-          Profile and team questions
-        </summary>
-        <div className="mt-4 flex flex-col gap-5">
+      {section === "identity" && (
+        <>
           <InputField
             name="preferredName"
             label="Preferred name"
@@ -188,6 +188,10 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             error={errors.pronouns}
             className={REGISTRATION_INPUT_CLASS}
           />
+        </>
+      )}
+      {section === "education" && (
+        <>
           <InputField
             name="major"
             label="Major or field of study"
@@ -206,6 +210,10 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             error={errors.graduationYear}
             className={REGISTRATION_INPUT_CLASS}
           />
+        </>
+      )}
+      {section === "technical" && (
+        <>
           <div>
             <label htmlFor="hackathons" className="mb-1 block font-semibold text-gray-900">
               Previous hackathons<span className="text-red-600">*</span>
@@ -231,28 +239,49 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
               Skills or technologies you want to work with
               <span className="text-red-600">*</span>
             </label>
-            <textarea
+            <select
               id="skills"
               name="skills"
-              rows={3}
               required
               aria-invalid={Boolean(errors.skills)}
               className={REGISTRATION_INPUT_CLASS}
-            />
+            >
+              <option value="">Select…</option>
+              {[
+                "Web development",
+                "Mobile development",
+                "AI or machine learning",
+                "Data science",
+                "Cybersecurity",
+                "Hardware or IoT",
+                "Game development",
+                "Haven't decided yet",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
             {errors.skills && <p className="mt-1 text-sm text-red-600">{errors.skills}</p>}
           </div>
           <div>
             <label htmlFor="workshopInterests" className="mb-1 block font-semibold text-gray-900">
-              Workshops you would like to attend<span className="text-red-600">*</span>
+              Would you like to attend workshops?<span className="text-red-600">*</span>
             </label>
-            <textarea
+            <select
               id="workshopInterests"
               name="workshopInterests"
-              rows={3}
               required
               aria-invalid={Boolean(errors.workshopInterests)}
               className={REGISTRATION_INPUT_CLASS}
-            />
+            >
+              <option value="">Select…</option>
+              {["Yes", "No", "Not sure yet"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
             {errors.workshopInterests && (
               <p className="mt-1 text-sm text-red-600">{errors.workshopInterests}</p>
             )}
@@ -283,6 +312,10 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             </select>
             {errors.teamStatus && <p className="mt-1 text-sm text-red-600">{errors.teamStatus}</p>}
           </div>
+        </>
+      )}
+      {section === "social" && (
+        <>
           <InputField
             name="githubUrl"
             label="GitHub profile"
@@ -312,14 +345,43 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             error={errors.discordHandle}
             className={REGISTRATION_INPUT_CLASS}
           />
-          <InputField
-            name="referralSource"
-            label="How did you hear about RevUC?"
-            required
-            aria-invalid={Boolean(errors.referralSource)}
-            error={errors.referralSource}
-            className={REGISTRATION_INPUT_CLASS}
-          />
+        </>
+      )}
+      {section === "referral" && (
+        <>
+          <div>
+            <label htmlFor="referralSource" className="mb-1 block font-semibold text-gray-900">
+              How did you hear about RevUC?<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="referralSource"
+              name="referralSource"
+              required
+              aria-invalid={Boolean(errors.referralSource)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {[
+                "Friend or family",
+                "School or university",
+                "Social media",
+                "Previous RevUC event",
+                "Major League Hacking",
+                "Other",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.referralSource && (
+              <p className="mt-1 text-sm text-red-600">{errors.referralSource}</p>
+            )}
+          </div>
+        </>
+      )}
+      {section === "demographics" && (
+        <>
           <div>
             <label htmlFor="gender" className="mb-1 block font-semibold text-gray-900">
               Gender<span className="text-red-600">*</span>
@@ -357,23 +419,13 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             >
               <option value="">Select…</option>
               {[
-                "Asian Indian",
-                "Black or African",
-                "Chinese",
-                "Filipino",
-                "Guamanian or Chamorro",
-                "Hispanic / Latino / Spanish origin",
-                "Japanese",
-                "Korean",
-                "Middle Eastern",
-                "Native American or Alaskan Native",
-                "Native Hawaiian",
-                "Samoan",
-                "Vietnamese",
+                "American Indian or Alaska Native",
+                "Asian",
+                "Black or African American",
+                "Hispanic or Latino",
+                "Middle Eastern or North African",
+                "Native Hawaiian or Pacific Islander",
                 "White",
-                "Other Asian",
-                "Other Pacific Islander",
-                "Another race or ethnicity",
                 "Prefer not to answer",
               ].map((option) => (
                 <option key={option} value={option}>
@@ -388,13 +440,10 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
           <p id="demographics-help" className="text-sm text-gray-600">
             Select Prefer not to answer if you do not want to disclose these details.
           </p>
-        </div>
-      </details>
-      <details open className="rounded-lg border border-[#B7D9FF] p-4">
-        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
-          Food, shirts, and accessibility
-        </summary>
-        <div className="mt-4 flex flex-col gap-5">
+        </>
+      )}
+      {section === "logistics" && (
+        <>
           <fieldset>
             <legend className="mb-1 font-semibold text-gray-900">
               Dietary restrictions<span className="text-red-600">*</span>
@@ -443,23 +492,18 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
           )}
           <div>
             <label htmlFor="foodAllergies" className="mb-1 block font-semibold text-gray-900">
-              Food allergies<span className="text-red-600">*</span>
+              Food allergies (optional)
             </label>
             <textarea
               id="foodAllergies"
               name="foodAllergies"
               rows={3}
-              required
-              aria-invalid={Boolean(errors.foodAllergies)}
               className={REGISTRATION_INPUT_CLASS}
             />
-            {errors.foodAllergies && (
-              <p className="mt-1 text-sm text-red-600">{errors.foodAllergies}</p>
-            )}
           </div>
           <div>
             <label htmlFor="accessibilityNeeds" className="mb-1 block font-semibold text-gray-900">
-              Accessibility or accommodation requests<span className="text-red-600">*</span>
+              Accessibility or accommodation requests (optional)
             </label>
             <p id="accessibility-help" className="mb-2 text-sm text-gray-600">
               Tell us what assistance you need. You do not need to share a diagnosis.
@@ -468,14 +512,9 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
               id="accessibilityNeeds"
               name="accessibilityNeeds"
               rows={3}
-              required
-              aria-invalid={Boolean(errors.accessibilityNeeds)}
               aria-describedby="accessibility-help"
               className={REGISTRATION_INPUT_CLASS}
             />
-            {errors.accessibilityNeeds && (
-              <p className="mt-1 text-sm text-red-600">{errors.accessibilityNeeds}</p>
-            )}
           </div>
           <div>
             <label htmlFor="shirtSize" className="mb-1 block font-semibold text-gray-900">
@@ -497,13 +536,10 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             </select>
             {errors.shirtSize && <p className="mt-1 text-sm text-red-600">{errors.shirtSize}</p>}
           </div>
-        </div>
-      </details>
-      <details open className="rounded-lg border border-[#B7D9FF] p-4">
-        <summary className="min-h-11 cursor-pointer content-center font-semibold text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]">
-          Resume and recruiting preferences
-        </summary>
-        <div className="mt-4 flex flex-col gap-5">
+        </>
+      )}
+      {section === "resume" && (
+        <>
           <div>
             <label htmlFor="resume" className="mb-1 block font-semibold text-gray-900">
               Choose a PDF resume<span className="text-red-600">*</span>
@@ -564,6 +600,10 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
               </button>
             )}
           </div>
+        </>
+      )}
+      {section === "sponsor" && (
+        <>
           <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
             <input
               type="checkbox"
@@ -580,9 +620,9 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             />
             RevUC sponsors may contact me about recruiting opportunities.
           </label>
-        </div>
-      </details>
-    </section>
+        </>
+      )}
+    </div>
   );
 });
 export default function InterestPage() {
@@ -656,36 +696,32 @@ export default function InterestPage() {
     if (!mlhCoc) next.mlhCoc = "You must agree to the MLH Code of Conduct";
     if (!mlhSharing) next.mlhSharing = "You must authorize MLH information sharing";
 
-    const details = e.currentTarget.querySelector<HTMLElement>(
-      '[aria-labelledby="registration-details-heading"]'
-    );
+    const form = e.currentTarget;
     const nextAdditional: Record<string, string> = {};
-    if (details) {
-      const requiredFields = details.querySelectorAll<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >("[required]");
-      for (const field of requiredFields) {
-        if (field.validity.valueMissing || (field.type !== "file" && !field.value.trim())) {
-          nextAdditional[field.name] = "This answer is required";
-        } else if (!field.validity.valid) {
-          nextAdditional[field.name] = "Please enter a valid value";
-        }
+    const requiredFields = form.querySelectorAll<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("[data-registration-fields] [required]");
+    for (const field of requiredFields) {
+      if (field.validity.valueMissing || (field.type !== "file" && !field.value.trim())) {
+        nextAdditional[field.name] = "This answer is required";
+      } else if (!field.validity.valid) {
+        nextAdditional[field.name] = "Please enter a valid value";
       }
-      if (!details.querySelector('input[name="dietRestrictions"]:checked')) {
-        nextAdditional.dietRestrictions = "Please select a dietary restriction or None";
-      }
+    }
+
+    if (!form.querySelector('input[name="dietRestrictions"]:checked')) {
+      nextAdditional.dietRestrictions = "Please select a dietary restriction or None";
     }
     setAdditionalErrors(nextAdditional);
 
     if (Object.keys(next).length > 0 || Object.keys(nextAdditional).length > 0) {
       setErrors(next);
-      if (Object.keys(next).length === 0 && details) {
+      if (Object.keys(next).length === 0) {
         const firstInvalid = Array.from(
-          details.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-            "[name]"
+          form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+            "[data-registration-fields] [name]"
           )
         ).find((field) => nextAdditional[field.name]);
-        firstInvalid?.closest("details")?.setAttribute("open", "");
         requestAnimationFrame(() => firstInvalid?.focus());
       }
       return;
@@ -733,7 +769,11 @@ export default function InterestPage() {
   }
 
   return (
-    <div className="relative min-h-screen pt-24 pb-16 flex items-center justify-center px-4">
+    <div
+      id="hacker-interest-page"
+      className="relative min-h-screen pt-24 pb-16 flex items-center justify-center px-4"
+    >
+      <style>{`body:has(#hacker-interest-page) > nav { position: absolute; }`}</style>
       {/* Decorative background blobs */}
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -804,6 +844,12 @@ export default function InterestPage() {
                 onChange={handleNameChange(setLastName, "lastName")}
                 error={errors.lastName}
                 required
+              />
+
+              <RegistrationHackerFields
+                section="identity"
+                errors={additionalErrors}
+                setErrors={setAdditionalErrors}
               />
 
               <div>
@@ -895,6 +941,12 @@ export default function InterestPage() {
                 />
               )}
 
+              <RegistrationHackerFields
+                section="education"
+                errors={additionalErrors}
+                setErrors={setAdditionalErrors}
+              />
+
               <div>
                 <label htmlFor="country" className="mb-1 block font-semibold text-gray-900">
                   Country of Residence<span className="text-red-600">*</span>
@@ -915,6 +967,30 @@ export default function InterestPage() {
                   ))}
                 </select>
                 {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
+              </div>
+
+              {(["referral", "demographics", "logistics", "technical", "social"] as const).map(
+                (section) => (
+                  <RegistrationHackerFields
+                    key={section}
+                    section={section}
+                    errors={additionalErrors}
+                    setErrors={setAdditionalErrors}
+                  />
+                ),
+              )}
+
+              <div className="flex flex-col gap-5 rounded-lg border border-[#B7D9FF] p-4">
+                <RegistrationHackerFields
+                  section="resume"
+                  errors={additionalErrors}
+                  setErrors={setAdditionalErrors}
+                />
+                <RegistrationHackerFields
+                  section="sponsor"
+                  errors={additionalErrors}
+                  setErrors={setAdditionalErrors}
+                />
               </div>
 
               {/* MLH Partnership Section */}
@@ -1013,8 +1089,6 @@ export default function InterestPage() {
                   </label>
                 </div>
               </div>
-
-              <RegistrationHackerFields errors={additionalErrors} setErrors={setAdditionalErrors} />
 
               <button
                 type="submit"
