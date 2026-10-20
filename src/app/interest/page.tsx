@@ -207,51 +207,31 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
           <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
-      {selected.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2" aria-label="Selected skills">
-          {selected.map((skill) => (
-            <span
-              key={skill}
-              className="inline-flex max-w-full items-center gap-1 rounded-full bg-[#EDF6FF] px-3 py-1 text-sm text-[#151477]"
-            >
-              <span className="min-w-0 break-words">{skill}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${skill}`}
-                onClick={() => toggleSkill(skill)}
-                className="ml-1 rounded-full px-1 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
       {open && (
         <div
           id="skills-options"
-          className="absolute left-0 right-0 z-50 mt-1 rounded-md border border-gray-200 bg-white p-3 shadow-lg"
+          className="absolute left-0 right-0 z-50 border border-gray-500 bg-white"
           onKeyDown={(event) => {
             if (event.key === "Escape") setOpen(false);
           }}
         >
-          <div className="max-h-48 overflow-y-auto">
+          <div className="max-h-56 overflow-y-auto">
             {SKILL_OPTIONS.map((skill) => (
               <label
                 key={skill}
-                className="flex min-h-11 cursor-pointer items-center gap-3 px-2 text-sm text-gray-900 hover:bg-[#EDF6FF]"
+                className={`flex min-h-11 cursor-pointer items-center px-4 text-base text-gray-900 hover:bg-[#9bc4fa] focus-within:bg-[#9bc4fa] ${selected.includes(skill) ? "bg-[#9bc4fa]" : "bg-white"}`}
               >
                 <input
                   type="checkbox"
                   checked={selected.includes(skill)}
                   onChange={() => toggleSkill(skill)}
-                  className="h-4 w-4 shrink-0 accent-[#151477]"
+                  className="sr-only"
                 />
                 {skill}
               </label>
             ))}
           </div>
-          <div className="mt-2 flex gap-2 border-t border-gray-200 pt-3">
+          <div className="flex gap-2 border-t border-gray-500 p-2">
             <input
               type="text"
               value={customSkill}
@@ -275,6 +255,26 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
               Add
             </button>
           </div>
+        </div>
+      )}
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2" aria-label="Selected skills">
+          {selected.map((skill) => (
+            <span
+              key={skill}
+              className="inline-flex max-w-full items-center gap-1 rounded-full bg-[#EDF6FF] px-3 py-1 text-sm text-[#151477]"
+            >
+              <span className="min-w-0 break-words">{skill}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${skill}`}
+                onClick={() => toggleSkill(skill)}
+                className="ml-1 rounded-full px-1 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
+              >
+                ×
+              </button>
+            </span>
+          ))}
         </div>
       )}
       {error && (
