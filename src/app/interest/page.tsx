@@ -137,9 +137,20 @@ const SKILL_OPTIONS = [
 
 function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: () => void }) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [customSkill, setCustomSkill] = useState("");
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const typedSkill = query.trim();
+  const menuSkills = [
+    ...SKILL_OPTIONS,
+    ...selected.filter((skill) => !SKILL_OPTIONS.includes(skill)),
+  ].filter((skill) => skill.toLowerCase().includes(typedSkill.toLowerCase()));
+  const canAddTypedSkill =
+    typedSkill.length > 0 &&
+    ![...SKILL_OPTIONS, ...selected].some(
+      (skill) => skill.toLowerCase() === typedSkill.toLowerCase(),
+    );
 
   useEffect(() => {
     function closeOnOutsideClick(event: MouseEvent) {
@@ -157,56 +168,81 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
   }
 
   function addCustomSkill() {
-    const skill = customSkill.trim();
-    if (!skill) return;
+    if (!typedSkill) return;
+    const skill =
+      SKILL_OPTIONS.find((option) => option.toLowerCase() === typedSkill.toLowerCase()) ??
+      typedSkill;
     setSelected((current) =>
       current.some((item) => item.toLowerCase() === skill.toLowerCase())
         ? current
         : [...current, skill],
     );
-    setCustomSkill("");
+    setQuery("");
     clearError();
+    inputRef.current?.focus();
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div
+      ref={containerRef}
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
       <label id="skills-label" className="mb-1 block font-semibold text-gray-900">
         Skills or technologies you want to work with<span className="text-red-600">*</span>
       </label>
       <input type="hidden" name="skills" value={JSON.stringify(selected)} />
-      <button
-        id="skills"
-        type="button"
-        aria-labelledby="skills-label skills"
-        aria-expanded={open}
-        aria-controls="skills-options"
-        aria-invalid={Boolean(error)}
-        onClick={() => setOpen((current) => !current)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") setOpen(false);
-        }}
-        className={`${REGISTRATION_INPUT_CLASS} flex items-center justify-between gap-2 text-left focus-visible:ring-2 focus-visible:ring-[#151477]`}
+      <div
+        className={`${REGISTRATION_INPUT_CLASS} flex items-center gap-2 focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500`}
       >
-        <span className="min-w-0 truncate">
-          {selected.length === 0
-            ? "Select…"
-            : selected.length === 1
-              ? selected[0]
-              : `${selected.length} selected`}
-        </span>
-        <svg
-          aria-hidden="true"
-          className="h-4 w-4 shrink-0 text-gray-700"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <input
+          ref={inputRef}
+          id="skills"
+          type="text"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setOpen(false);
+            if (event.key === "Enter" && typedSkill) {
+              event.preventDefault();
+              addCustomSkill();
+            }
+          }}
+          aria-labelledby="skills-label"
+          aria-expanded={open}
+          aria-controls="skills-options"
+          aria-invalid={Boolean(error)}
+          placeholder={selected.length === 0 ? "Select…" : selected.join(", ")}
+          className="min-w-0 flex-1 bg-transparent text-base text-gray-900 outline-none placeholder:text-gray-900"
+        />
+        <button
+          type="button"
+          aria-label={open ? "Hide skill options" : "Show skill options"}
+          aria-expanded={open}
+          aria-controls="skills-options"
+          onClick={() => setOpen((current) => !current)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
         >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4 text-gray-700"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
       {open && (
         <div
           id="skills-options"
@@ -215,66 +251,34 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
             if (event.key === "Escape") setOpen(false);
           }}
         >
-          <div className="max-h-56 overflow-y-auto">
-            {SKILL_OPTIONS.map((skill) => (
+          <div className="max-h-48 overflow-y-auto">
+            {menuSkills.map((skill) => (
               <label
                 key={skill}
-                className={`flex min-h-11 cursor-pointer items-center px-4 text-base text-gray-900 hover:bg-[#9bc4fa] focus-within:bg-[#9bc4fa] ${selected.includes(skill) ? "bg-[#9bc4fa]" : "bg-white"}`}
+                className={`flex min-h-8 cursor-pointer items-center px-4 text-base text-gray-900 hover:bg-[#9bc4fa] focus-within:bg-[#9bc4fa] ${selected.includes(skill) ? "bg-[#9bc4fa]" : "bg-white"}`}
               >
                 <input
                   type="checkbox"
                   checked={selected.includes(skill)}
-                  onChange={() => toggleSkill(skill)}
+                  onChange={() => {
+                    toggleSkill(skill);
+                    setQuery("");
+                  }}
                   className="sr-only"
                 />
                 {skill}
               </label>
             ))}
           </div>
-          <div className="flex gap-2 border-t border-gray-500 p-2">
-            <input
-              type="text"
-              value={customSkill}
-              onChange={(event) => setCustomSkill(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  addCustomSkill();
-                }
-              }}
-              aria-label="Other skill or technology"
-              placeholder="Add another skill…"
-              className={REGISTRATION_INPUT_CLASS}
-            />
+          {canAddTypedSkill && (
             <button
               type="button"
               onClick={addCustomSkill}
-              disabled={!customSkill.trim()}
-              className="min-h-11 rounded-md bg-[#151477] px-4 font-semibold text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
+              className="flex min-h-8 w-full items-center px-4 text-left text-base text-gray-900 hover:bg-[#9bc4fa] focus-visible:bg-[#9bc4fa] focus-visible:outline-none"
             >
-              Add
+              Add “{typedSkill}”
             </button>
-          </div>
-        </div>
-      )}
-      {selected.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2" aria-label="Selected skills">
-          {selected.map((skill) => (
-            <span
-              key={skill}
-              className="inline-flex max-w-full items-center gap-1 rounded-full bg-[#EDF6FF] px-3 py-1 text-sm text-[#151477]"
-            >
-              <span className="min-w-0 break-words">{skill}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${skill}`}
-                onClick={() => toggleSkill(skill)}
-                className="ml-1 rounded-full px-1 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
-              >
-                ×
-              </button>
-            </span>
-          ))}
+          )}
         </div>
       )}
       {error && (
