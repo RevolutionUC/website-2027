@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
 import { supabase } from "@/lib/supabase";
 import { SCHOOLS } from "./schools";
@@ -60,9 +60,7 @@ function SchoolCombobox({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const filtered = query.trim()
-    ? UNIQUE_SCHOOLS.filter((s) =>
-        s.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 100)
+    ? UNIQUE_SCHOOLS.filter((s) => s.toLowerCase().includes(query.toLowerCase())).slice(0, 100)
     : UNIQUE_SCHOOLS.slice(0, 100);
 
   useEffect(() => {
@@ -123,6 +121,656 @@ function SchoolCombobox({
   );
 }
 
+const REGISTRATION_INPUT_CLASS =
+  "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
+
+const SKILL_OPTIONS = [
+  "Web development",
+  "Mobile development",
+  "AI or machine learning",
+  "Data science",
+  "Cybersecurity",
+  "Hardware or IoT",
+  "Game development",
+  "Haven't decided yet",
+];
+
+function skillsFromText(value: string) {
+  const skills = value
+    .split(",")
+    .map((skill) => skill.trim())
+    .filter(Boolean);
+  return skills.filter(
+    (skill, index) =>
+      skills.findIndex((item) => item.toLowerCase() === skill.toLowerCase()) === index,
+  );
+}
+
+function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: () => void }) {
+  const [skillText, setSkillText] = useState("");
+  const [committedText, setCommittedText] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const selected = skillsFromText(skillText);
+  const menuSkills = [
+    ...SKILL_OPTIONS,
+    ...skillsFromText(committedText).filter(
+      (skill) => !SKILL_OPTIONS.includes(skill) && selected.includes(skill),
+    ),
+  ];
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, []);
+
+  function toggleSkill(skill: string) {
+    const next = selected.some((item) => item.toLowerCase() === skill.toLowerCase())
+      ? selected.filter((item) => item.toLowerCase() !== skill.toLowerCase())
+      : [...selected, skill];
+    const nextText = next.join(", ");
+    setSkillText(nextText);
+    setCommittedText(nextText);
+    clearError();
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label id="skills-label" className="mb-1 block font-semibold text-gray-900">
+        Skills or technologies you want to work with<span className="text-red-600">*</span>
+      </label>
+      <input type="hidden" name="skills" value={JSON.stringify(selected)} />
+      <div
+        className={`${REGISTRATION_INPUT_CLASS} flex items-center gap-2 focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500`}
+      >
+        <input
+          ref={inputRef}
+          id="skills"
+          type="text"
+          value={skillText}
+          onChange={(event) => setSkillText(event.target.value)}
+          onFocus={() => setOpen(true)}
+          onClick={() => {
+            if (skillText === committedText) {
+              inputRef.current?.setSelectionRange(skillText.length, skillText.length);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setOpen(false);
+              return;
+            }
+            if (event.key === "Enter") {
+              event.preventDefault();
+              const nextText = selected.join(", ");
+              setSkillText(nextText);
+              setCommittedText(nextText);
+              setOpen(false);
+              if (nextText) clearError();
+              return;
+            }
+            if (
+              event.key.length === 1 &&
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              skillText.length > 0 &&
+              skillText === committedText &&
+              inputRef.current?.selectionStart === skillText.length &&
+              inputRef.current?.selectionEnd === skillText.length
+            ) {
+              event.preventDefault();
+              setSkillText(`${skillText}, ${event.key}`);
+            }
+          }}
+          aria-labelledby="skills-label"
+          aria-expanded={open}
+          aria-controls="skills-options"
+          aria-invalid={Boolean(error)}
+          placeholder="Select…"
+          className="min-w-0 flex-1 bg-transparent text-base text-gray-900 outline-none placeholder:text-gray-900"
+        />
+        <button
+          type="button"
+          aria-label={open ? "Hide skill options" : "Show skill options"}
+          aria-expanded={open}
+          aria-controls="skills-options"
+          onClick={() => setOpen((current) => !current)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
+        >
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4 text-gray-700"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
+      {open && (
+        <div
+          id="skills-options"
+          className="absolute left-0 right-0 z-50 border border-gray-500 bg-white"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setOpen(false);
+          }}
+        >
+          <div className="max-h-48 overflow-y-auto">
+            {menuSkills.map((skill) => (
+              <label
+                key={skill}
+                className={`flex min-h-8 cursor-pointer items-center px-4 text-base text-gray-900 hover:bg-[#9bc4fa] focus-within:bg-[#9bc4fa] ${selected.includes(skill) ? "bg-[#9bc4fa]" : "bg-white"}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(skill)}
+                  onChange={() => toggleSkill(skill)}
+                  className="sr-only"
+                />
+                {skill}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+      {error && (
+        <p className="mt-1 text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const RegistrationHackerFields = memo(function RegistrationHackerFields({
+  section,
+  errors,
+  setErrors,
+}: {
+  section:
+    | "identity"
+    | "education"
+    | "referral"
+    | "demographics"
+    | "logistics"
+    | "technical"
+    | "social"
+    | "resume"
+    | "sponsor";
+  errors: Record<string, string>;
+  setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}) {
+  const [showOtherDiet, setShowOtherDiet] = useState(false);
+  const [resumeError, setResumeError] = useState("");
+  const [resumeName, setResumeName] = useState("");
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div
+      data-registration-fields
+      className="flex flex-col gap-5"
+      onChange={(event) => {
+        const name = (event.target as HTMLInputElement).name;
+        if (
+          name &&
+          (name !== "dietRestrictions" ||
+            event.currentTarget.querySelector('input[name="dietRestrictions"]:checked'))
+        ) {
+          setErrors((previous) => {
+            if (!previous[name]) return previous;
+            const next = { ...previous };
+            delete next[name];
+            return next;
+          });
+        }
+      }}
+    >
+      {section === "identity" && (
+        <>
+          <InputField
+            name="preferredName"
+            label="Preferred name"
+            autoComplete="nickname"
+            required
+            aria-invalid={Boolean(errors.preferredName)}
+            error={errors.preferredName}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+          <InputField
+            name="pronouns"
+            label="Pronouns"
+            required
+            aria-invalid={Boolean(errors.pronouns)}
+            error={errors.pronouns}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+        </>
+      )}
+      {section === "education" && (
+        <>
+          <InputField
+            name="major"
+            label="Major or field of study"
+            required
+            aria-invalid={Boolean(errors.major)}
+            error={errors.major}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+          <InputField
+            name="graduationYear"
+            label="Expected graduation year"
+            type="number"
+            inputMode="numeric"
+            required
+            aria-invalid={Boolean(errors.graduationYear)}
+            error={errors.graduationYear}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+        </>
+      )}
+      {section === "technical" && (
+        <>
+          <div>
+            <label htmlFor="hackathons" className="mb-1 block font-semibold text-gray-900">
+              Previous hackathons<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="hackathons"
+              name="hackathons"
+              required
+              aria-invalid={Boolean(errors.hackathons)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {["First hackathon", "1–2", "3–5", "6+"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.hackathons && <p className="mt-1 text-sm text-red-600">{errors.hackathons}</p>}
+          </div>
+          <SkillsMultiSelect
+            error={errors.skills}
+            clearError={() =>
+              setErrors((previous) => {
+                if (!previous.skills) return previous;
+                const next = { ...previous };
+                delete next.skills;
+                return next;
+              })
+            }
+          />
+          <div>
+            <label htmlFor="workshopInterests" className="mb-1 block font-semibold text-gray-900">
+              Would you like to attend workshops?<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="workshopInterests"
+              name="workshopInterests"
+              required
+              aria-invalid={Boolean(errors.workshopInterests)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {["Yes", "No", "Not sure yet"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.workshopInterests && (
+              <p className="mt-1 text-sm text-red-600">{errors.workshopInterests}</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="teamStatus" className="mb-1 block font-semibold text-gray-900">
+              Team plans<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="teamStatus"
+              name="teamStatus"
+              required
+              aria-invalid={Boolean(errors.teamStatus)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {[
+                "Looking for a team",
+                "Already have a team",
+                "Open to more teammates",
+                "Prefer to work solo",
+                "Not sure yet",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.teamStatus && <p className="mt-1 text-sm text-red-600">{errors.teamStatus}</p>}
+          </div>
+        </>
+      )}
+      {section === "social" && (
+        <>
+          <InputField
+            name="githubUrl"
+            label="GitHub profile"
+            type="url"
+            spellCheck={false}
+            required
+            aria-invalid={Boolean(errors.githubUrl)}
+            error={errors.githubUrl}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+          <InputField
+            name="linkedinUrl"
+            label="LinkedIn or portfolio"
+            type="url"
+            spellCheck={false}
+            required
+            aria-invalid={Boolean(errors.linkedinUrl)}
+            error={errors.linkedinUrl}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+          <InputField
+            name="discordHandle"
+            label="Discord handle"
+            spellCheck={false}
+            required
+            aria-invalid={Boolean(errors.discordHandle)}
+            error={errors.discordHandle}
+            className={REGISTRATION_INPUT_CLASS}
+          />
+        </>
+      )}
+      {section === "referral" && (
+        <>
+          <div>
+            <label htmlFor="referralSource" className="mb-1 block font-semibold text-gray-900">
+              How did you hear about RevUC?<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="referralSource"
+              name="referralSource"
+              required
+              aria-invalid={Boolean(errors.referralSource)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {[
+                "Friend or family",
+                "School or university",
+                "Social media",
+                "Previous RevUC event",
+                "Major League Hacking",
+                "Other",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.referralSource && (
+              <p className="mt-1 text-sm text-red-600">{errors.referralSource}</p>
+            )}
+          </div>
+        </>
+      )}
+      {section === "demographics" && (
+        <>
+          <div>
+            <label htmlFor="gender" className="mb-1 block font-semibold text-gray-900">
+              Gender<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="gender"
+              name="gender"
+              required
+              aria-invalid={Boolean(errors.gender)}
+              aria-describedby="demographics-help"
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {["Man", "Woman", "Non-binary", "Another gender", "Prefer not to answer"].map(
+                (option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ),
+              )}
+            </select>
+            {errors.gender && <p className="mt-1 text-sm text-red-600">{errors.gender}</p>}
+          </div>
+          <div>
+            <label htmlFor="raceEthnicity" className="mb-1 block font-semibold text-gray-900">
+              Race or ethnicity<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="raceEthnicity"
+              name="raceEthnicity"
+              required
+              aria-invalid={Boolean(errors.raceEthnicity)}
+              aria-describedby="demographics-help"
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {[
+                "American Indian or Alaska Native",
+                "Asian",
+                "Black or African American",
+                "Hispanic or Latino",
+                "Middle Eastern or North African",
+                "Native Hawaiian or Pacific Islander",
+                "White",
+                "Prefer not to answer",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.raceEthnicity && (
+              <p className="mt-1 text-sm text-red-600">{errors.raceEthnicity}</p>
+            )}
+          </div>
+          <p id="demographics-help" className="text-sm text-gray-600">
+            Select Prefer not to answer if you do not want to disclose these details.
+          </p>
+        </>
+      )}
+      {section === "logistics" && (
+        <>
+          <fieldset>
+            <legend className="mb-1 font-semibold text-gray-900">
+              Dietary restrictions<span className="text-red-600">*</span>
+            </legend>
+            <div className="flex flex-col">
+              {[
+                "None",
+                "Vegetarian",
+                "Vegan",
+                "Halal",
+                "Kosher",
+                "Gluten-free",
+                "Other",
+                "Prefer to discuss privately",
+              ].map((option) => (
+                <label
+                  key={option}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 text-gray-900"
+                >
+                  <input
+                    type="checkbox"
+                    name="dietRestrictions"
+                    value={option}
+                    className="h-4 w-4 shrink-0 accent-[#151477]"
+                    onChange={(event) => {
+                      if (option === "Other") setShowOtherDiet(event.target.checked);
+                    }}
+                  />
+                  {option}
+                </label>
+              ))}
+            </div>
+            {errors.dietRestrictions && (
+              <p className="mt-1 text-sm text-red-600">{errors.dietRestrictions}</p>
+            )}
+          </fieldset>
+          {showOtherDiet && (
+            <InputField
+              name="otherDiet"
+              label="Other dietary restrictions"
+              required
+              aria-invalid={Boolean(errors.otherDiet)}
+              error={errors.otherDiet}
+              className={REGISTRATION_INPUT_CLASS}
+            />
+          )}
+          <div>
+            <label htmlFor="foodAllergies" className="mb-1 block font-semibold text-gray-900">
+              Food allergies (optional)
+            </label>
+            <textarea
+              id="foodAllergies"
+              name="foodAllergies"
+              rows={3}
+              className={REGISTRATION_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="accessibilityNeeds" className="mb-1 block font-semibold text-gray-900">
+              Accessibility or accommodation requests (optional)
+            </label>
+            <p id="accessibility-help" className="mb-2 text-sm text-gray-600">
+              Tell us what assistance you need. You do not need to share a diagnosis.
+            </p>
+            <textarea
+              id="accessibilityNeeds"
+              name="accessibilityNeeds"
+              rows={3}
+              aria-describedby="accessibility-help"
+              className={REGISTRATION_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="shirtSize" className="mb-1 block font-semibold text-gray-900">
+              Shirt size<span className="text-red-600">*</span>
+            </label>
+            <select
+              id="shirtSize"
+              name="shirtSize"
+              required
+              aria-invalid={Boolean(errors.shirtSize)}
+              className={REGISTRATION_INPUT_CLASS}
+            >
+              <option value="">Select…</option>
+              {["XS", "S", "M", "L", "XL", "2XL", "3XL", "No shirt"].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.shirtSize && <p className="mt-1 text-sm text-red-600">{errors.shirtSize}</p>}
+          </div>
+        </>
+      )}
+      {section === "resume" && (
+        <>
+          <div>
+            <label htmlFor="resume" className="mb-1 block font-semibold text-gray-900">
+              Choose a PDF resume<span className="text-red-600">*</span>
+            </label>
+            <p id="resume-help" className="mb-2 text-sm text-gray-600">
+              PDF only, up to 4 MB. Selecting a file does not upload it yet.
+            </p>
+            <input
+              ref={resumeInputRef}
+              id="resume"
+              name="resume"
+              type="file"
+              accept=".pdf,application/pdf"
+              required
+              aria-describedby={
+                resumeError || errors.resume ? "resume-help resume-error" : "resume-help"
+              }
+              aria-invalid={Boolean(resumeError || errors.resume)}
+              className={REGISTRATION_INPUT_CLASS}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                setResumeError("");
+                setResumeName("");
+                if (!file) return;
+                if (
+                  !file.name.toLowerCase().endsWith(".pdf") ||
+                  (file.type && file.type !== "application/pdf")
+                ) {
+                  setResumeError("Please choose a PDF file.");
+                  event.currentTarget.value = "";
+                } else if (file.size > 4 * 1024 * 1024) {
+                  setResumeError("Please choose a PDF no larger than 4 MB.");
+                  event.currentTarget.value = "";
+                } else {
+                  setResumeName(file.name);
+                }
+              }}
+            />
+            {(resumeError || errors.resume) && (
+              <p id="resume-error" role="alert" className="mt-2 text-sm text-red-600">
+                {resumeError || errors.resume}
+              </p>
+            )}
+            {resumeName && (
+              <button
+                type="button"
+                className="mt-2 min-h-11 rounded-md border border-[#B7D9FF] px-3 py-2 text-sm font-semibold text-[#151477] hover:bg-[#EDF6FF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#228CF6]"
+                onClick={() => {
+                  if (resumeInputRef.current) {
+                    resumeInputRef.current.value = "";
+                    resumeInputRef.current.focus();
+                  }
+                  setResumeName("");
+                  setResumeError("");
+                }}
+              >
+                Remove selected resume
+              </button>
+            )}
+          </div>
+        </>
+      )}
+      {section === "sponsor" && (
+        <>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
+            <input
+              type="checkbox"
+              name="sponsorResumeConsent"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
+            />
+            I want my resume shared with authorized RevUC sponsors for recruiting.
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm text-gray-900">
+            <input
+              type="checkbox"
+              name="sponsorContactConsent"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
+            />
+            RevUC sponsors may contact me about recruiting opportunities.
+          </label>
+        </>
+      )}
+    </div>
+  );
+});
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -138,6 +786,7 @@ export default function InterestPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const [additionalErrors, setAdditionalErrors] = useState<Record<string, string>>({});
 
   function handleNameChange(setter: (v: string) => void, field: keyof Errors) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,8 +842,40 @@ export default function InterestPage() {
     if (!mlhCoc) next.mlhCoc = "You must agree to the MLH Code of Conduct";
     if (!mlhSharing) next.mlhSharing = "You must authorize MLH information sharing";
 
-    if (Object.keys(next).length > 0) {
+    const form = e.currentTarget;
+    const nextAdditional: Record<string, string> = {};
+    const requiredFields = form.querySelectorAll<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("[data-registration-fields] [required]");
+    for (const field of requiredFields) {
+      if (field.validity.valueMissing || (field.type !== "file" && !field.value.trim())) {
+        nextAdditional[field.name] = "This answer is required";
+      } else if (!field.validity.valid) {
+        nextAdditional[field.name] = "Please enter a valid value";
+      }
+    }
+    if (form.querySelector<HTMLInputElement>('input[name="skills"]')?.value === "[]") {
+      nextAdditional.skills = "Select or add at least one skill";
+    }
+    if (!form.querySelector('input[name="dietRestrictions"]:checked')) {
+      nextAdditional.dietRestrictions = "Please select a dietary restriction or None";
+    }
+    setAdditionalErrors(nextAdditional);
+
+    if (Object.keys(next).length > 0 || Object.keys(nextAdditional).length > 0) {
       setErrors(next);
+      if (Object.keys(next).length === 0) {
+        const firstInvalid = Array.from(
+          form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+            "[data-registration-fields] [name]",
+          ),
+        ).find((field) => nextAdditional[field.name]);
+        requestAnimationFrame(() =>
+          firstInvalid?.name === "skills"
+            ? form.querySelector<HTMLButtonElement>("#skills")?.focus()
+            : firstInvalid?.focus(),
+        );
+      }
       return;
     }
 
@@ -240,12 +921,13 @@ export default function InterestPage() {
   }
 
   return (
-    <div className="relative min-h-screen pt-24 pb-16 flex items-center justify-center px-4">
+    <div
+      id="hacker-interest-page"
+      className="relative min-h-screen pt-24 pb-16 flex items-center justify-center px-4"
+    >
+      <style>{`body:has(#hacker-interest-page) > nav { position: absolute; }`}</style>
       {/* Decorative background blobs */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        aria-hidden="true"
-      >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-20 -left-20 h-96 w-96 rounded-full bg-[#228CF6]/10 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#19E363]/10 blur-3xl" />
       </div>
@@ -253,9 +935,7 @@ export default function InterestPage() {
       <div className="relative w-full max-w-lg">
         {/* Header */}
         <div className="mb-8 text-center">
-          <p className="font-mono text-sm uppercase tracking-widest text-[#228CF6] mb-2">
-          
-          </p>
+          <p className="font-mono text-sm uppercase tracking-widest text-[#228CF6] mb-2"></p>
           <h1 className="text-4xl sm:text-5xl font-bold text-[#151477] leading-tight">
             Hacker Interest{" "}
             <span className="relative inline-block after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#19E363]">
@@ -263,7 +943,8 @@ export default function InterestPage() {
             </span>
           </h1>
           <p className="mt-4 text-[#151477]/70 text-base sm:text-lg">
-            We are glad to know that you&apos;re interested — please fill out the interest form below and we&apos;ll reach out when registration opens.
+            We are glad to know that you&apos;re interested — please fill out the interest form
+            below and we&apos;ll reach out when registration opens.
           </p>
         </div>
 
@@ -279,11 +960,7 @@ export default function InterestPage() {
                   strokeWidth={2.5}
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4.5 12.75l6 6 9-13.5"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-[#151477]">You&apos;re on the list!</h2>
@@ -313,6 +990,12 @@ export default function InterestPage() {
                 required
               />
 
+              <RegistrationHackerFields
+                section="identity"
+                errors={additionalErrors}
+                setErrors={setAdditionalErrors}
+              />
+
               <div>
                 <label htmlFor="age" className="mb-1 block font-semibold text-gray-900">
                   Age<span className="text-red-600">*</span>
@@ -327,9 +1010,13 @@ export default function InterestPage() {
                   }}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
-                  <option value="" disabled>Select...</option>
+                  <option value="" disabled>
+                    Select...
+                  </option>
                   {AGE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                 </select>
                 {errors.age && <p className="mt-1 text-sm text-red-600">{errors.age}</p>}
@@ -379,16 +1066,23 @@ export default function InterestPage() {
                   onChange={(e) => {
                     setLevelOfStudy(e.target.value);
                     if (e.target.value !== "Other") setOtherLevelOfStudy("");
-                    if (errors.levelOfStudy) setErrors((prev) => ({ ...prev, levelOfStudy: undefined }));
+                    if (errors.levelOfStudy)
+                      setErrors((prev) => ({ ...prev, levelOfStudy: undefined }));
                   }}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
-                  <option value="" disabled>Select...</option>
+                  <option value="" disabled>
+                    Select...
+                  </option>
                   {STUDY_LEVELS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                 </select>
-                {errors.levelOfStudy && <p className="mt-1 text-sm text-red-600">{errors.levelOfStudy}</p>}
+                {errors.levelOfStudy && (
+                  <p className="mt-1 text-sm text-red-600">{errors.levelOfStudy}</p>
+                )}
               </div>
 
               {levelOfStudy === "Other" && (
@@ -401,6 +1095,12 @@ export default function InterestPage() {
                   required
                 />
               )}
+
+              <RegistrationHackerFields
+                section="education"
+                errors={additionalErrors}
+                setErrors={setAdditionalErrors}
+              />
 
               <div>
                 <label htmlFor="country" className="mb-1 block font-semibold text-gray-900">
@@ -416,18 +1116,48 @@ export default function InterestPage() {
                   }}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
-                  <option value="" disabled>Select...</option>
+                  <option value="" disabled>
+                    Select...
+                  </option>
                   {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </select>
                 {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
               </div>
 
+              {(["referral", "demographics", "logistics", "technical", "social"] as const).map(
+                (section) => (
+                  <RegistrationHackerFields
+                    key={section}
+                    section={section}
+                    errors={additionalErrors}
+                    setErrors={setAdditionalErrors}
+                  />
+                ),
+              )}
+
+              <div className="flex flex-col gap-5 rounded-lg border border-[#B7D9FF] p-4">
+                <RegistrationHackerFields
+                  section="resume"
+                  errors={additionalErrors}
+                  setErrors={setAdditionalErrors}
+                />
+                <RegistrationHackerFields
+                  section="sponsor"
+                  errors={additionalErrors}
+                  setErrors={setAdditionalErrors}
+                />
+              </div>
+
               {/* MLH Partnership Section */}
               <div className="rounded-lg border border-[#B7D9FF] bg-[#EDF6FF]/60 px-4 py-4 flex flex-col gap-4">
                 <p className="text-xs text-[#151477]/70 leading-relaxed">
-                  We are currently in the process of partnering with MLH. The following 3 checkboxes are for this partnership. If we do not end up partnering with MLH, your information will not be shared.
+                  We are currently in the process of partnering with MLH. The following 3 checkboxes
+                  are for this partnership. If we do not end up partnering with MLH, your
+                  information will not be shared.
                 </p>
 
                 <div className="flex flex-col gap-3">
@@ -456,7 +1186,9 @@ export default function InterestPage() {
                         .<span className="text-red-600 ml-0.5">*</span>
                       </span>
                     </label>
-                    {errors.mlhCoc && <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhCoc}</p>}
+                    {errors.mlhCoc && (
+                      <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhCoc}</p>
+                    )}
                   </div>
 
                   {/* Checkbox 2 - required */}
@@ -467,12 +1199,15 @@ export default function InterestPage() {
                         checked={mlhSharing}
                         onChange={(e) => {
                           setMlhSharing(e.target.checked);
-                          if (errors.mlhSharing) setErrors((prev) => ({ ...prev, mlhSharing: undefined }));
+                          if (errors.mlhSharing)
+                            setErrors((prev) => ({ ...prev, mlhSharing: undefined }));
                         }}
                         className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
                       />
                       <span className="text-sm text-gray-900">
-                        I authorize you to share my application/registration information with Major League Hacking for event administration, ranking, and administration (including the creation of linked accounts on MLH and {" "}
+                        I authorize you to share my application/registration information with Major
+                        League Hacking for event administration, ranking, and administration
+                        (including the creation of linked accounts on MLH{" and "}
                         <a
                           href="dev.to"
                           target="_blank"
@@ -481,7 +1216,7 @@ export default function InterestPage() {
                         >
                           DEV
                         </a>
-                           ) in line with the{" "}
+                        ) in line with the{" "}
                         <a
                           href="https://github.com/MLH/mlh-policies/blob/main/privacy-policy.md"
                           target="_blank"
@@ -498,12 +1233,14 @@ export default function InterestPage() {
                           className="text-[#228CF6] underline hover:text-[#151477]"
                         >
                           MLH Contest Terms and Conditions
-                        </a>
-                        {" "}and the MLH Privacy Policy.
+                        </a>{" "}
+                        and the MLH Privacy Policy.
                         <span className="text-red-600 ml-0.5">*</span>
                       </span>
                     </label>
-                    {errors.mlhSharing && <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhSharing}</p>}
+                    {errors.mlhSharing && (
+                      <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhSharing}</p>
+                    )}
                   </div>
 
                   {/* Checkbox 3 - optional */}
@@ -515,7 +1252,8 @@ export default function InterestPage() {
                       className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
                     />
                     <span className="text-sm text-gray-900">
-                      I authorize MLH + DEV to send me occasional emails about relevant events, career opportunities, and community announcements.
+                      I authorize MLH + DEV to send me occasional emails about relevant events,
+                      career opportunities, and community announcements.
                     </span>
                   </label>
                 </div>
