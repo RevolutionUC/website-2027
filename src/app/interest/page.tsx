@@ -60,9 +60,7 @@ function SchoolCombobox({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const filtered = query.trim()
-    ? UNIQUE_SCHOOLS.filter((s) =>
-        s.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 100)
+    ? UNIQUE_SCHOOLS.filter((s) => s.toLowerCase().includes(query.toLowerCase())).slice(0, 100)
     : UNIQUE_SCHOOLS.slice(0, 100);
 
   useEffect(() => {
@@ -137,13 +135,7 @@ const SKILL_OPTIONS = [
   "Haven't decided yet",
 ];
 
-function SkillsMultiSelect({
-  error,
-  clearError,
-}: {
-  error?: string;
-  clearError: () => void;
-}) {
+function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: () => void }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [customSkill, setCustomSkill] = useState("");
   const [open, setOpen] = useState(false);
@@ -159,7 +151,7 @@ function SkillsMultiSelect({
 
   function toggleSkill(skill: string) {
     setSelected((current) =>
-      current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill]
+      current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill],
     );
     clearError();
   }
@@ -170,7 +162,7 @@ function SkillsMultiSelect({
     setSelected((current) =>
       current.some((item) => item.toLowerCase() === skill.toLowerCase())
         ? current
-        : [...current, skill]
+        : [...current, skill],
     );
     setCustomSkill("");
     clearError();
@@ -195,7 +187,9 @@ function SkillsMultiSelect({
         }}
         className={`${REGISTRATION_INPUT_CLASS} text-left focus-visible:ring-2 focus-visible:ring-[#151477]`}
       >
-        {selected.length ? `Add more skills (${selected.length} selected)` : "Choose skills or technologies…"}
+        {selected.length
+          ? `Add more skills (${selected.length} selected)`
+          : "Choose skills or technologies…"}
       </button>
       {selected.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2" aria-label="Selected skills">
@@ -227,7 +221,10 @@ function SkillsMultiSelect({
         >
           <div className="max-h-48 overflow-y-auto">
             {SKILL_OPTIONS.map((skill) => (
-              <label key={skill} className="flex min-h-11 cursor-pointer items-center gap-3 px-2 text-sm text-gray-900 hover:bg-[#EDF6FF]">
+              <label
+                key={skill}
+                className="flex min-h-11 cursor-pointer items-center gap-3 px-2 text-sm text-gray-900 hover:bg-[#EDF6FF]"
+              >
                 <input
                   type="checkbox"
                   checked={selected.includes(skill)}
@@ -264,7 +261,11 @@ function SkillsMultiSelect({
           </div>
         </div>
       )}
-      {error && <p className="mt-1 text-sm text-red-600" role="alert">{error}</p>}
+      {error && (
+        <p className="mt-1 text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -845,13 +846,13 @@ export default function InterestPage() {
       if (Object.keys(next).length === 0) {
         const firstInvalid = Array.from(
           form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-            "[data-registration-fields] [name]"
-          )
+            "[data-registration-fields] [name]",
+          ),
         ).find((field) => nextAdditional[field.name]);
         requestAnimationFrame(() =>
           firstInvalid?.name === "skills"
             ? form.querySelector<HTMLButtonElement>("#skills")?.focus()
-            : firstInvalid?.focus()
+            : firstInvalid?.focus(),
         );
       }
       return;
@@ -905,10 +906,7 @@ export default function InterestPage() {
     >
       <style>{`body:has(#hacker-interest-page) > nav { position: absolute; }`}</style>
       {/* Decorative background blobs */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        aria-hidden="true"
-      >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-20 -left-20 h-96 w-96 rounded-full bg-[#228CF6]/10 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#19E363]/10 blur-3xl" />
       </div>
@@ -916,9 +914,7 @@ export default function InterestPage() {
       <div className="relative w-full max-w-lg">
         {/* Header */}
         <div className="mb-8 text-center">
-          <p className="font-mono text-sm uppercase tracking-widest text-[#228CF6] mb-2">
-          
-          </p>
+          <p className="font-mono text-sm uppercase tracking-widest text-[#228CF6] mb-2"></p>
           <h1 className="text-4xl sm:text-5xl font-bold text-[#151477] leading-tight">
             Hacker Interest{" "}
             <span className="relative inline-block after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#19E363]">
@@ -926,7 +922,8 @@ export default function InterestPage() {
             </span>
           </h1>
           <p className="mt-4 text-[#151477]/70 text-base sm:text-lg">
-            We are glad to know that you&apos;re interested — please fill out the interest form below and we&apos;ll reach out when registration opens.
+            We are glad to know that you&apos;re interested — please fill out the interest form
+            below and we&apos;ll reach out when registration opens.
           </p>
         </div>
 
@@ -942,11 +939,7 @@ export default function InterestPage() {
                   strokeWidth={2.5}
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4.5 12.75l6 6 9-13.5"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-[#151477]">You&apos;re on the list!</h2>
@@ -996,9 +989,13 @@ export default function InterestPage() {
                   }}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
-                  <option value="" disabled>Select...</option>
+                  <option value="" disabled>
+                    Select...
+                  </option>
                   {AGE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                 </select>
                 {errors.age && <p className="mt-1 text-sm text-red-600">{errors.age}</p>}
@@ -1048,16 +1045,23 @@ export default function InterestPage() {
                   onChange={(e) => {
                     setLevelOfStudy(e.target.value);
                     if (e.target.value !== "Other") setOtherLevelOfStudy("");
-                    if (errors.levelOfStudy) setErrors((prev) => ({ ...prev, levelOfStudy: undefined }));
+                    if (errors.levelOfStudy)
+                      setErrors((prev) => ({ ...prev, levelOfStudy: undefined }));
                   }}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
-                  <option value="" disabled>Select...</option>
+                  <option value="" disabled>
+                    Select...
+                  </option>
                   {STUDY_LEVELS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                 </select>
-                {errors.levelOfStudy && <p className="mt-1 text-sm text-red-600">{errors.levelOfStudy}</p>}
+                {errors.levelOfStudy && (
+                  <p className="mt-1 text-sm text-red-600">{errors.levelOfStudy}</p>
+                )}
               </div>
 
               {levelOfStudy === "Other" && (
@@ -1091,9 +1095,13 @@ export default function InterestPage() {
                   }}
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
-                  <option value="" disabled>Select...</option>
+                  <option value="" disabled>
+                    Select...
+                  </option>
                   {COUNTRIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </select>
                 {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
@@ -1126,7 +1134,9 @@ export default function InterestPage() {
               {/* MLH Partnership Section */}
               <div className="rounded-lg border border-[#B7D9FF] bg-[#EDF6FF]/60 px-4 py-4 flex flex-col gap-4">
                 <p className="text-xs text-[#151477]/70 leading-relaxed">
-                  We are currently in the process of partnering with MLH. The following 3 checkboxes are for this partnership. If we do not end up partnering with MLH, your information will not be shared.
+                  We are currently in the process of partnering with MLH. The following 3 checkboxes
+                  are for this partnership. If we do not end up partnering with MLH, your
+                  information will not be shared.
                 </p>
 
                 <div className="flex flex-col gap-3">
@@ -1155,7 +1165,9 @@ export default function InterestPage() {
                         .<span className="text-red-600 ml-0.5">*</span>
                       </span>
                     </label>
-                    {errors.mlhCoc && <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhCoc}</p>}
+                    {errors.mlhCoc && (
+                      <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhCoc}</p>
+                    )}
                   </div>
 
                   {/* Checkbox 2 - required */}
@@ -1166,12 +1178,15 @@ export default function InterestPage() {
                         checked={mlhSharing}
                         onChange={(e) => {
                           setMlhSharing(e.target.checked);
-                          if (errors.mlhSharing) setErrors((prev) => ({ ...prev, mlhSharing: undefined }));
+                          if (errors.mlhSharing)
+                            setErrors((prev) => ({ ...prev, mlhSharing: undefined }));
                         }}
                         className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
                       />
                       <span className="text-sm text-gray-900">
-                        I authorize you to share my application/registration information with Major League Hacking for event administration, ranking, and administration (including the creation of linked accounts on MLH and {" "}
+                        I authorize you to share my application/registration information with Major
+                        League Hacking for event administration, ranking, and administration
+                        (including the creation of linked accounts on MLH{" and "}
                         <a
                           href="dev.to"
                           target="_blank"
@@ -1180,7 +1195,7 @@ export default function InterestPage() {
                         >
                           DEV
                         </a>
-                           ) in line with the{" "}
+                        ) in line with the{" "}
                         <a
                           href="https://github.com/MLH/mlh-policies/blob/main/privacy-policy.md"
                           target="_blank"
@@ -1197,12 +1212,14 @@ export default function InterestPage() {
                           className="text-[#228CF6] underline hover:text-[#151477]"
                         >
                           MLH Contest Terms and Conditions
-                        </a>
-                        {" "}and the MLH Privacy Policy.
+                        </a>{" "}
+                        and the MLH Privacy Policy.
                         <span className="text-red-600 ml-0.5">*</span>
                       </span>
                     </label>
-                    {errors.mlhSharing && <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhSharing}</p>}
+                    {errors.mlhSharing && (
+                      <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhSharing}</p>
+                    )}
                   </div>
 
                   {/* Checkbox 3 - optional */}
@@ -1214,7 +1231,8 @@ export default function InterestPage() {
                       className="mt-0.5 h-4 w-4 shrink-0 accent-[#151477]"
                     />
                     <span className="text-sm text-gray-900">
-                      I authorize MLH + DEV to send me occasional emails about relevant events, career opportunities, and community announcements.
+                      I authorize MLH + DEV to send me occasional emails about relevant events,
+                      career opportunities, and community announcements.
                     </span>
                   </label>
                 </div>
