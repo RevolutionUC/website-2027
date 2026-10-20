@@ -1,7 +1,14 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function sendError(result: PromiseSettledResult<Awaited<ReturnType<typeof resend.emails.send>>>) {
+  if (result.status === "rejected") return result.reason;
+  const { error } = result.value;
+  return error?.name === "concurrent_idempotent_requests" ? null : error;
+}
 
 interface NotifyPayload {
   fullName: string;
@@ -78,7 +85,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload: NotifyPayload = await request.json();
+  const body = await request.text();
+  const payload: NotifyPayload = JSON.parse(body);
+  const submissionHash = createHash("sha256").update(body).digest("hex");
   const summaryTable = renderSummaryTable(payload);
   const [firstName, ...lastNameParts] = payload.fullName.trim().split(/\s+/);
   const lastName = lastNameParts.join(" ") || undefined;
@@ -105,13 +114,13 @@ export async function POST(request: Request) {
       replyTo: payload.email,
       subject: `New Judge/Mentor Interest: ${payload.fullName}`,
       html: summaryTable,
-    }),
+    }, { idempotencyKey: `judge-mentor-internal/${submissionHash}` }),
     resend.emails.send({
       from: fromEmail,
       to: payload.email,
       subject: `Thanks for your interest in ${interestPhrase} at RevolutionUC!`,
       html: `${buildMessageTemplateHtml(interestPhrase, roleLabel, processWord)}<h3>Your submission</h3>${summaryTable}`,
-    }),
+    }, { idempotencyKey: `judge-mentor-confirmation/${submissionHash}` }),
     segmentIds.length > 0
       ? resend.contacts.create({
           email: payload.email,
@@ -122,10 +131,8 @@ export async function POST(request: Request) {
       : Promise.resolve(null),
   ]);
 
-  const internalError =
-    internalResult.status === "fulfilled" ? internalResult.value.error : internalResult.reason;
-  const submitterError =
-    submitterResult.status === "fulfilled" ? submitterResult.value.error : submitterResult.reason;
+  const internalError = sendError(internalResult);
+  const submitterError = sendError(submitterResult);
 
   if (contactResult.status === "rejected") {
     console.error("Failed to add judge/mentor to Resend segment", contactResult.reason);
