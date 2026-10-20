@@ -239,20 +239,69 @@ const OptionalHackerFields = memo(function OptionalHackerFields() {
             label="How did you hear about RevUC?"
             className={OPTIONAL_INPUT_CLASS}
           />
-          <InputField
-            name="gender"
-            label="Gender"
-            aria-describedby="optional-demographics-help"
-            className={OPTIONAL_INPUT_CLASS}
-          />
-          <InputField
-            name="raceEthnicity"
-            label="Race or ethnicity"
-            aria-describedby="optional-demographics-help"
-            className={OPTIONAL_INPUT_CLASS}
-          />
+          <div>
+            <label htmlFor="gender" className="mb-1 block font-semibold text-gray-900">
+              Gender
+            </label>
+            <select
+              id="gender"
+              name="gender"
+              aria-describedby="optional-demographics-help"
+              className={OPTIONAL_INPUT_CLASS}
+            >
+              <option value="">Select (optional)…</option>
+              {[
+                "Man",
+                "Woman",
+                "Non-binary",
+                "Another gender",
+                "Prefer not to answer",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="raceEthnicity" className="mb-1 block font-semibold text-gray-900">
+              Race or ethnicity
+            </label>
+            <select
+              id="raceEthnicity"
+              name="raceEthnicity"
+              aria-describedby="optional-demographics-help"
+              className={OPTIONAL_INPUT_CLASS}
+            >
+              <option value="">Select (optional)…</option>
+              {[
+                "Asian Indian",
+                "Black or African",
+                "Chinese",
+                "Filipino",
+                "Guamanian or Chamorro",
+                "Hispanic / Latino / Spanish origin",
+                "Japanese",
+                "Korean",
+                "Middle Eastern",
+                "Native American or Alaskan Native",
+                "Native Hawaiian",
+                "Samoan",
+                "Vietnamese",
+                "White",
+                "Other Asian",
+                "Other Pacific Islander",
+                "Another race or ethnicity",
+                "Prefer not to answer",
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
           <p id="optional-demographics-help" className="text-sm text-gray-600">
-            You can leave these questions blank or enter Prefer not to answer.
+            You can leave these questions blank or select Prefer not to answer.
           </p>
         </div>
       </details>
