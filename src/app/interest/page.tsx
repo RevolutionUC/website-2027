@@ -135,22 +135,30 @@ const SKILL_OPTIONS = [
   "Haven't decided yet",
 ];
 
+function skillsFromText(value: string) {
+  const skills = value
+    .split(",")
+    .map((skill) => skill.trim())
+    .filter(Boolean);
+  return skills.filter(
+    (skill, index) =>
+      skills.findIndex((item) => item.toLowerCase() === skill.toLowerCase()) === index,
+  );
+}
+
 function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: () => void }) {
-  const [selected, setSelected] = useState<string[]>([]);
-  const [query, setQuery] = useState("");
+  const [skillText, setSkillText] = useState("");
+  const [committedText, setCommittedText] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const typedSkill = query.trim();
+  const selected = skillsFromText(skillText);
   const menuSkills = [
     ...SKILL_OPTIONS,
-    ...selected.filter((skill) => !SKILL_OPTIONS.includes(skill)),
-  ].filter((skill) => skill.toLowerCase().includes(typedSkill.toLowerCase()));
-  const canAddTypedSkill =
-    typedSkill.length > 0 &&
-    ![...SKILL_OPTIONS, ...selected].some(
-      (skill) => skill.toLowerCase() === typedSkill.toLowerCase(),
-    );
+    ...skillsFromText(committedText).filter(
+      (skill) => !SKILL_OPTIONS.includes(skill) && selected.includes(skill),
+    ),
+  ];
 
   useEffect(() => {
     function closeOnOutsideClick(event: MouseEvent) {
@@ -161,35 +169,17 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
   }, []);
 
   function toggleSkill(skill: string) {
-    setSelected((current) =>
-      current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill],
-    );
+    const next = selected.some((item) => item.toLowerCase() === skill.toLowerCase())
+      ? selected.filter((item) => item.toLowerCase() !== skill.toLowerCase())
+      : [...selected, skill];
+    const nextText = next.join(", ");
+    setSkillText(nextText);
+    setCommittedText(nextText);
     clearError();
-  }
-
-  function addCustomSkill() {
-    if (!typedSkill) return;
-    const skill =
-      SKILL_OPTIONS.find((option) => option.toLowerCase() === typedSkill.toLowerCase()) ??
-      typedSkill;
-    setSelected((current) =>
-      current.some((item) => item.toLowerCase() === skill.toLowerCase())
-        ? current
-        : [...current, skill],
-    );
-    setQuery("");
-    clearError();
-    inputRef.current?.focus();
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="relative"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
-      }}
-    >
+    <div ref={containerRef} className="relative">
       <label id="skills-label" className="mb-1 block font-semibold text-gray-900">
         Skills or technologies you want to work with<span className="text-red-600">*</span>
       </label>
@@ -201,24 +191,47 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
           ref={inputRef}
           id="skills"
           type="text"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setOpen(true);
-          }}
+          value={skillText}
+          onChange={(event) => setSkillText(event.target.value)}
           onFocus={() => setOpen(true)}
+          onClick={() => {
+            if (skillText === committedText) {
+              inputRef.current?.setSelectionRange(skillText.length, skillText.length);
+            }
+          }}
           onKeyDown={(event) => {
-            if (event.key === "Escape") setOpen(false);
-            if (event.key === "Enter" && typedSkill) {
+            if (event.key === "Escape") {
+              setOpen(false);
+              return;
+            }
+            if (event.key === "Enter") {
               event.preventDefault();
-              addCustomSkill();
+              const nextText = selected.join(", ");
+              setSkillText(nextText);
+              setCommittedText(nextText);
+              setOpen(false);
+              if (nextText) clearError();
+              return;
+            }
+            if (
+              event.key.length === 1 &&
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              skillText.length > 0 &&
+              skillText === committedText &&
+              inputRef.current?.selectionStart === skillText.length &&
+              inputRef.current?.selectionEnd === skillText.length
+            ) {
+              event.preventDefault();
+              setSkillText(`${skillText}, ${event.key}`);
             }
           }}
           aria-labelledby="skills-label"
           aria-expanded={open}
           aria-controls="skills-options"
           aria-invalid={Boolean(error)}
-          placeholder={selected.length === 0 ? "Select…" : selected.join(", ")}
+          placeholder="Select…"
           className="min-w-0 flex-1 bg-transparent text-base text-gray-900 outline-none placeholder:text-gray-900"
         />
         <button
@@ -260,25 +273,13 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
                 <input
                   type="checkbox"
                   checked={selected.includes(skill)}
-                  onChange={() => {
-                    toggleSkill(skill);
-                    setQuery("");
-                  }}
+                  onChange={() => toggleSkill(skill)}
                   className="sr-only"
                 />
                 {skill}
               </label>
             ))}
           </div>
-          {canAddTypedSkill && (
-            <button
-              type="button"
-              onClick={addCustomSkill}
-              className="flex min-h-8 w-full items-center px-4 text-left text-base text-gray-900 hover:bg-[#9bc4fa] focus-visible:bg-[#9bc4fa] focus-visible:outline-none"
-            >
-              Add “{typedSkill}”
-            </button>
-          )}
         </div>
       )}
       {error && (
