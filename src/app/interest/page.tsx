@@ -126,6 +126,149 @@ function SchoolCombobox({
 const REGISTRATION_INPUT_CLASS =
   "min-h-11 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500";
 
+const SKILL_OPTIONS = [
+  "Web development",
+  "Mobile development",
+  "AI or machine learning",
+  "Data science",
+  "Cybersecurity",
+  "Hardware or IoT",
+  "Game development",
+  "Haven't decided yet",
+];
+
+function SkillsMultiSelect({
+  error,
+  clearError,
+}: {
+  error?: string;
+  clearError: () => void;
+}) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [customSkill, setCustomSkill] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, []);
+
+  function toggleSkill(skill: string) {
+    setSelected((current) =>
+      current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill]
+    );
+    clearError();
+  }
+
+  function addCustomSkill() {
+    const skill = customSkill.trim();
+    if (!skill) return;
+    setSelected((current) =>
+      current.some((item) => item.toLowerCase() === skill.toLowerCase())
+        ? current
+        : [...current, skill]
+    );
+    setCustomSkill("");
+    clearError();
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label id="skills-label" className="mb-1 block font-semibold text-gray-900">
+        Skills or technologies you want to work with<span className="text-red-600">*</span>
+      </label>
+      <input type="hidden" name="skills" value={JSON.stringify(selected)} />
+      <button
+        id="skills"
+        type="button"
+        aria-labelledby="skills-label skills"
+        aria-expanded={open}
+        aria-controls="skills-options"
+        aria-invalid={Boolean(error)}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setOpen(false);
+        }}
+        className={`${REGISTRATION_INPUT_CLASS} text-left focus-visible:ring-2 focus-visible:ring-[#151477]`}
+      >
+        {selected.length ? `Add more skills (${selected.length} selected)` : "Choose skills or technologies…"}
+      </button>
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2" aria-label="Selected skills">
+          {selected.map((skill) => (
+            <span
+              key={skill}
+              className="inline-flex max-w-full items-center gap-1 rounded-full bg-[#EDF6FF] px-3 py-1 text-sm text-[#151477]"
+            >
+              <span className="min-w-0 break-words">{skill}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${skill}`}
+                onClick={() => toggleSkill(skill)}
+                className="ml-1 rounded-full px-1 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {open && (
+        <div
+          id="skills-options"
+          className="absolute left-0 right-0 z-50 mt-1 rounded-md border border-gray-200 bg-white p-3 shadow-lg"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setOpen(false);
+          }}
+        >
+          <div className="max-h-48 overflow-y-auto">
+            {SKILL_OPTIONS.map((skill) => (
+              <label key={skill} className="flex min-h-11 cursor-pointer items-center gap-3 px-2 text-sm text-gray-900 hover:bg-[#EDF6FF]">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(skill)}
+                  onChange={() => toggleSkill(skill)}
+                  className="h-4 w-4 shrink-0 accent-[#151477]"
+                />
+                {skill}
+              </label>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2 border-t border-gray-200 pt-3">
+            <input
+              type="text"
+              value={customSkill}
+              onChange={(event) => setCustomSkill(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addCustomSkill();
+                }
+              }}
+              aria-label="Other skill or technology"
+              placeholder="Add another skill…"
+              className={REGISTRATION_INPUT_CLASS}
+            />
+            <button
+              type="button"
+              onClick={addCustomSkill}
+              disabled={!customSkill.trim()}
+              className="min-h-11 rounded-md bg-[#151477] px-4 font-semibold text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#151477]"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+      {error && <p className="mt-1 text-sm text-red-600" role="alert">{error}</p>}
+    </div>
+  );
+}
+
 const RegistrationHackerFields = memo(function RegistrationHackerFields({
   section,
   errors,
@@ -234,36 +377,17 @@ const RegistrationHackerFields = memo(function RegistrationHackerFields({
             </select>
             {errors.hackathons && <p className="mt-1 text-sm text-red-600">{errors.hackathons}</p>}
           </div>
-          <div>
-            <label htmlFor="skills" className="mb-1 block font-semibold text-gray-900">
-              Skills or technologies you want to work with
-              <span className="text-red-600">*</span>
-            </label>
-            <select
-              id="skills"
-              name="skills"
-              required
-              aria-invalid={Boolean(errors.skills)}
-              className={REGISTRATION_INPUT_CLASS}
-            >
-              <option value="">Select…</option>
-              {[
-                "Web development",
-                "Mobile development",
-                "AI or machine learning",
-                "Data science",
-                "Cybersecurity",
-                "Hardware or IoT",
-                "Game development",
-                "Haven't decided yet",
-              ].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {errors.skills && <p className="mt-1 text-sm text-red-600">{errors.skills}</p>}
-          </div>
+          <SkillsMultiSelect
+            error={errors.skills}
+            clearError={() =>
+              setErrors((previous) => {
+                if (!previous.skills) return previous;
+                const next = { ...previous };
+                delete next.skills;
+                return next;
+              })
+            }
+          />
           <div>
             <label htmlFor="workshopInterests" className="mb-1 block font-semibold text-gray-900">
               Would you like to attend workshops?<span className="text-red-600">*</span>
@@ -708,7 +832,9 @@ export default function InterestPage() {
         nextAdditional[field.name] = "Please enter a valid value";
       }
     }
-
+    if (form.querySelector<HTMLInputElement>('input[name="skills"]')?.value === "[]") {
+      nextAdditional.skills = "Select or add at least one skill";
+    }
     if (!form.querySelector('input[name="dietRestrictions"]:checked')) {
       nextAdditional.dietRestrictions = "Please select a dietary restriction or None";
     }
@@ -722,7 +848,11 @@ export default function InterestPage() {
             "[data-registration-fields] [name]"
           )
         ).find((field) => nextAdditional[field.name]);
-        requestAnimationFrame(() => firstInvalid?.focus());
+        requestAnimationFrame(() =>
+          firstInvalid?.name === "skills"
+            ? form.querySelector<HTMLButtonElement>("#skills")?.focus()
+            : firstInvalid?.focus()
+        );
       }
       return;
     }
