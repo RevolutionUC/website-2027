@@ -185,11 +185,27 @@ function SkillsMultiSelect({ error, clearError }: { error?: string; clearError: 
         onKeyDown={(event) => {
           if (event.key === "Escape") setOpen(false);
         }}
-        className={`${REGISTRATION_INPUT_CLASS} text-left focus-visible:ring-2 focus-visible:ring-[#151477]`}
+        className={`${REGISTRATION_INPUT_CLASS} flex items-center justify-between gap-2 text-left focus-visible:ring-2 focus-visible:ring-[#151477]`}
       >
-        {selected.length
-          ? `Add more skills (${selected.length} selected)`
-          : "Choose skills or technologies…"}
+        <span className="min-w-0 truncate">
+          {selected.length === 0
+            ? "Select…"
+            : selected.length === 1
+              ? selected[0]
+              : `${selected.length} selected`}
+        </span>
+        <svg
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-gray-700"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </button>
       {selected.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2" aria-label="Selected skills">
