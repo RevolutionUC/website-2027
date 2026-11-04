@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
 import { supabase } from "@/lib/supabase";
 import { SCHOOLS } from "./schools";
 import { COUNTRIES } from "./countries";
+import type { ReactNode } from "react";
+import majors from "@/data/majors_cleaned.json";
 
 const UNIQUE_SCHOOLS = [...new Set(SCHOOLS)];
 const AGE_OPTIONS = Array.from({ length: 88 }, (_, i) => String(i + 13));
+const GRADUATION_YEARS = Array.from({ length: 7 }, (_, i) => String(2026 + i));
+const GENDER_OPTIONS = ["Woman", "Man", "Non-binary", "Self-describe", "Prefer not to say"];
+const ETHNICITIES = ["American Indian or Alaska Native", "Asian", "Black or African American", "Hispanic or Latino/a/x", "Middle Eastern or North African", "Native Hawaiian or Other Pacific Islander", "White", "Multiracial", "Self-describe", "Prefer not to say"];
+const TSHIRT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "Prefer not to say"];
+const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 const STUDY_LEVELS = [
   "Less than Secondary / High School",
   "Secondary / High School",
@@ -21,6 +28,12 @@ const STUDY_LEVELS = [
   "I'm not currently a student",
   "Prefer not to answer",
 ];
+
+const REG_TABLE = "registrations_2027_dev_aditya_CHANGE_THIS";
+const DEV_MODE = true;
+
+const inputClass = "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-[#228CF6] focus:outline-none focus:ring-1 focus:ring-[#228CF6]";
+
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -44,8 +57,18 @@ interface Errors {
   country?: string;
   mlhCoc?: string;
   mlhSharing?: string;
+  gender?: string;
+  ethnicity?: string;
+  major?: string;
+  graduationYear?: string;
+  participantPref?: string;
+  tshirtSize?: string;
+  foodSuggestions?: string;
+  foodAllergy?: string;
+  resume?: string;
+  numHacks?: string;
+  addNotes?: string;
 }
-
 function SchoolCombobox({
   value,
   onChange,
@@ -123,11 +146,28 @@ function SchoolCombobox({
   );
 }
 
+
+
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [ethnicity, setEthnicity] = useState("");
+  const [major, setMajor] = useState("");
+  const [graduationYear, setGraduationYear] = useState("");
+  const [participantPref, setParticipantPref] = useState("");
+  const [tshirtSize, setTshirtSize] = useState("");
+  const [foodSuggestions, setFoodSuggestions] = useState("");
+  const [foodAllergy, setFoodAllergy] = useState("");
+  const [resume, setResume] = useState<File | null>(null);
+  const [resumeError, setResumeError] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const [numHacks, setNumHacks] = useState("");
+  const [addNotes, setAddNotes] = useState("");
+
   const [school, setSchool] = useState("");
   const [levelOfStudy, setLevelOfStudy] = useState("");
   const [otherLevelOfStudy, setOtherLevelOfStudy] = useState("");
@@ -139,6 +179,34 @@ export default function InterestPage() {
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});
 
+  const [majorSearch, setMajorSearch] = useState("");
+  const [majorOpen, setMajorOpen] = useState(false);
+  const [otherMajor, setOtherMajor] = useState("");
+  const majorRef = useRef<HTMLDivElement>(null);
+  
+  const majorOptions = [
+  ...majors.filter((m) => m !== "Other"),
+  "Other",
+  ];
+
+  const filteredMajors = majorOptions.filter((m) =>
+  m.toLowerCase().includes(majorSearch.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        majorRef.current &&
+        !majorRef.current.contains(event.target as Node)
+      ) {
+        setMajorOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   function handleNameChange(setter: (v: string) => void, field: keyof Errors) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, "");
@@ -146,6 +214,39 @@ export default function InterestPage() {
       if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
     };
   }
+
+  function handleResume(file: File | undefined) {
+    if (!file) return;
+
+    if (
+      file.type !== "application/pdf" ||
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setResumeError("Please upload a PDF file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setResumeError("File size must be under 5 MB.");
+      return;
+    }
+
+    setResume(file);
+    setResumeError("");
+  }
+
+  function handleTextChange(
+  setter: (v: string) => void,
+  field: keyof Errors
+) {
+  return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setter(e.target.value);
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+}
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     setPhone(formatPhone(e.target.value));
@@ -197,8 +298,14 @@ export default function InterestPage() {
       setErrors(next);
       return;
     }
+    if(DEV_MODE){
+      // log registration data
+      console.log(firstName.trim());
+      console.log(lastName.trim());
 
-    const { error: dbError } = await supabase.from("hacker_interest").insert({
+    }
+
+    const { error: dbError } = await supabase.from(REG_TABLE).insert({
       first_name: firstName.trim(),
       last_name: lastName.trim(),
       age,
@@ -257,13 +364,13 @@ export default function InterestPage() {
           
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold text-[#151477] leading-tight">
-            Hacker Interest{" "}
+            Hacker Registration{" "}
             <span className="relative inline-block after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#19E363]">
               Form
             </span>
           </h1>
           <p className="mt-4 text-[#151477]/70 text-base sm:text-lg">
-            We are glad to know that you&apos;re interested — please fill out the interest form below and we&apos;ll reach out when registration opens.
+            We are glad to know that you&apos;re interested — please fill out the registration form below.
           </p>
         </div>
 
@@ -335,6 +442,52 @@ export default function InterestPage() {
                 {errors.age && <p className="mt-1 text-sm text-red-600">{errors.age}</p>}
               </div>
 
+              <div>
+                <label htmlFor="gender" className="mb-1 block font-semibold text-gray-900">
+                  Gender<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={gender}
+                  onChange={(e) => {
+                    setGender(e.target.value);
+                    if (errors.gender) setErrors((prev) => ({ ...prev, gender: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.gender && <p className="mt-1 text-sm text-red-600">{errors.gender}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="ethnicity" className="mb-1 block font-semibold text-gray-900">
+                  Ethnicity<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="ethnicity"
+                  name="ethnicity"
+                  value={ethnicity}
+                  onChange={(e) => {
+                    setEthnicity(e.target.value);
+                    if (errors.ethnicity) setErrors((prev) => ({ ...prev, ethnicity: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {ETHNICITIES.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.ethnicity && <p className="mt-1 text-sm text-red-600">{errors.ethnicity}</p>}
+              </div>
+ 
+
+
               <InputField
                 name="phone"
                 label="Phone Number"
@@ -402,6 +555,99 @@ export default function InterestPage() {
                 />
               )}
 
+              
+            <div ref={majorRef} className="relative">
+              <label htmlFor="major" className="mb-1 block font-semibold text-gray-900">
+                Major<span className="text-red-600">*</span>
+              </label>
+
+              <input
+                id="major"
+                name="major"
+                type="text"
+                autoComplete="off"
+                placeholder="Search for your major..."
+                value={majorOpen ? majorSearch : major}
+                onFocus={() => {
+                  setMajorSearch("");
+                  setMajorOpen(true);
+                }}
+                onChange={(e) => {
+                  setMajorSearch(e.target.value);
+                  setMajorOpen(true);
+                  setMajor("");
+                  if (errors.major)
+                    setErrors((prev) => ({ ...prev, major: undefined }));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setMajorOpen(false);
+                }}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                role="combobox"
+                aria-expanded={majorOpen}
+                aria-controls="major-options"
+                aria-autocomplete="list"
+              />
+
+              {majorOpen && (
+                <ul
+                  id="major-options"
+                  role="listbox"
+                  className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg"
+                >
+                  {filteredMajors.length > 0 ? (
+                    filteredMajors.slice(0, 100).map((opt) => (
+                      <li key={opt} role="option" aria-selected={major === opt}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMajor(opt);
+                            setMajorSearch(opt);
+                            setMajorOpen(false);
+                            if (errors.major)
+                              setErrors((prev) => ({ ...prev, major: undefined }));
+                          }}
+                          className="w-full px-3 py-2 text-left text-gray-900 hover:bg-gray-100"
+                        >
+                          {opt}
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-3 py-2 text-gray-500">
+                      No majors found
+                    </li>
+                  )}
+                </ul>
+              )}
+
+              {errors.major && (
+                <p className="mt-1 text-sm text-red-600">{errors.major}</p>
+              )}
+            </div>
+            {major === "Other" && (
+              <div className="mt-3">
+                <label
+                  htmlFor="otherMajor"
+                  className="mb-1 block font-semibold text-gray-900"
+                >
+                  Please specify your major
+                  <span className="text-red-600">*</span>
+                </label>
+
+                <input
+                  id="otherMajor"
+                  name="otherMajor"
+                  type="text"
+                  value={otherMajor}
+                  onChange={(e) => setOtherMajor(e.target.value)}
+                  placeholder="Enter your major"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                />
+              </div>
+            )}
+
+
               <div>
                 <label htmlFor="country" className="mb-1 block font-semibold text-gray-900">
                   Country of Residence<span className="text-red-600">*</span>
@@ -423,6 +669,182 @@ export default function InterestPage() {
                 </select>
                 {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
               </div>
+
+              <div>
+                <label htmlFor="age" className="mb-1 block font-semibold text-gray-900">
+                  Expected Graduation Year<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="gradYear"
+                  name="gradYear"
+                  value={graduationYear}
+                  onChange={(e) => {
+                    setGraduationYear(e.target.value);
+                    if (errors.graduationYear) setErrors((prev) => ({ ...prev, graduationYear: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {GRADUATION_YEARS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.graduationYear && <p className="mt-1 text-sm text-red-600">{errors.graduationYear}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="tshirt" className="mb-1 block font-semibold text-gray-900">
+                  T-Shirt Size<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="tshirt"
+                  name="tshirt"
+                  value={tshirtSize}
+                  onChange={(e) => {
+                    setTshirtSize(e.target.value);
+                    if (errors.tshirtSize) setErrors((prev) => ({ ...prev, tshirtSize: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {TSHIRT_SIZES.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.tshirtSize && <p className="mt-1 text-sm text-red-600">{errors.tshirtSize}</p>}
+              </div>
+
+              <InputField
+                name="Food Suggestions"
+                label="Food Suggestions"
+                placeholder="Enter food suggestions"
+                value={foodSuggestions}
+                onChange={handleTextChange(setFoodSuggestions, "foodSuggestions")}
+                error={errors.foodSuggestions}
+              />
+              <InputField
+                name="Food Allergy"
+                label="Food Allergy"
+                placeholder="Mention food allergies (if any)"
+                value={foodAllergy}
+                onChange={handleTextChange(setFoodAllergy, "foodAllergy")}
+                error={errors.foodAllergy}
+              />
+
+              
+              <div>
+                <label
+                  htmlFor="resume"
+                  className="mb-1 block font-semibold text-gray-900"
+                >
+                  Resume<span className="text-gray-400"> (Optional)</span>
+                </label>
+
+                <input
+                  ref={resumeInputRef}
+                  id="resume"
+                  name="resume"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="sr-only"
+                  onChange={(e) => {
+                    handleResume(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => resumeInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      resumeInputRef.current?.click();
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleResume(e.dataTransfer.files[0]);
+                  }}
+                  className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                    isDragging
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300 bg-white hover:border-gray-500"
+                  }`}
+                >
+                  {resume ? (
+                    <div className="space-y-2">
+                      <p className="font-medium text-green-700">
+                        Resume selected
+                      </p>
+                      <p className="break-all text-sm text-gray-700">
+                        {resume.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(resume.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <p className="text-sm text-blue-600">
+                        Click or drop another file to replace
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="font-medium text-gray-900">
+                        Drag and drop your resume here
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        or click to browse files
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PDF only, maximum 5 MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {resume && (
+                  <button
+                    type="button"
+                    onClick={() => setResume(null)}
+                    className="mt-2 text-sm text-red-600 hover:underline"
+                  >
+                    Remove resume
+                  </button>
+                )}
+
+                {resumeError && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {resumeError}
+                  </p>
+                )}
+              </div>
+
+              <InputField
+                name="Number of Hackathons Attended"
+                label="Number of Hackathons Attended"
+                placeholder="Enter number of hackathons attended"
+                value={numHacks}
+                onChange={handleTextChange(setNumHacks, "numHacks")}
+                error={errors.numHacks}
+              />
+              <InputField
+                name="Additional Notes"
+                label="Additional Notes"
+                placeholder="Enter additional notes"
+                value={addNotes}
+                onChange={handleTextChange(setAddNotes, "addNotes")}
+                error={errors.addNotes}
+              />
 
               {/* MLH Partnership Section */}
               <div className="rounded-lg border border-[#B7D9FF] bg-[#EDF6FF]/60 px-4 py-4 flex flex-col gap-4">
