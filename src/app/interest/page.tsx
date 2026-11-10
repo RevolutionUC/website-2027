@@ -1,11 +1,10 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
 import { supabase } from "@/lib/supabase";
 import { SCHOOLS } from "./schools";
 import { COUNTRIES } from "./countries";
-import type { ReactNode } from "react";
 import majors from "@/data/majors_cleaned.json";
 
 const UNIQUE_SCHOOLS = [...new Set(SCHOOLS)];
@@ -14,6 +13,15 @@ const GRADUATION_YEARS = Array.from({ length: 7 }, (_, i) => String(2026 + i));
 const GENDER_OPTIONS = ["Woman", "Man", "Non-binary", "Self-describe", "Prefer not to say"];
 const ETHNICITIES = ["American Indian or Alaska Native", "Asian", "Black or African American", "Hispanic or Latino/a/x", "Middle Eastern or North African", "Native Hawaiian or Other Pacific Islander", "White", "Multiracial", "Self-describe", "Prefer not to say"];
 const TSHIRT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "Prefer not to say"];
+const FOOD_PREFERENCES = [
+  "No preference",
+  "Vegetarian",
+  "Vegan",
+  "Halal",
+  "Kosher",
+  "Other",
+];
+const HACKATHON_OPTIONS = ["0", "1-5", "5-10", "10+"];
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 const STUDY_LEVELS = [
   "Less than Secondary / High School",
@@ -31,9 +39,6 @@ const STUDY_LEVELS = [
 
 const REG_TABLE = "registrations_2027_dev_aditya_CHANGE_THIS";
 const DEV_MODE = true;
-
-const inputClass = "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-[#228CF6] focus:outline-none focus:ring-1 focus:ring-[#228CF6]";
-
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -61,12 +66,13 @@ interface Errors {
   ethnicity?: string;
   major?: string;
   graduationYear?: string;
-  participantPref?: string;
   tshirtSize?: string;
-  foodSuggestions?: string;
+  foodPreferences?: string;
   foodAllergy?: string;
   resume?: string;
   numHacks?: string;
+  linkedin?: string;
+  github?: string;
   addNotes?: string;
 }
 function SchoolCombobox({
@@ -157,15 +163,16 @@ export default function InterestPage() {
   const [ethnicity, setEthnicity] = useState("");
   const [major, setMajor] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
-  const [participantPref, setParticipantPref] = useState("");
   const [tshirtSize, setTshirtSize] = useState("");
-  const [foodSuggestions, setFoodSuggestions] = useState("");
+  const [foodPreferences, setFoodPreferences] = useState("");
   const [foodAllergy, setFoodAllergy] = useState("");
   const [resume, setResume] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const [numHacks, setNumHacks] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [github, setGithub] = useState("");
   const [addNotes, setAddNotes] = useState("");
 
   const [school, setSchool] = useState("");
@@ -226,13 +233,16 @@ export default function InterestPage() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_RESUME_SIZE) {
       setResumeError("File size must be under 5 MB.");
       return;
     }
 
     setResume(file);
     setResumeError("");
+    if (errors.resume) {
+      setErrors((prev) => ({ ...prev, resume: undefined }));
+    }
   }
 
   function handleTextChange(
@@ -291,6 +301,9 @@ export default function InterestPage() {
     if (!school) next.school = "Please select your school";
     if (!levelOfStudy) next.levelOfStudy = "Please select your level of study";
     if (!country) next.country = "Please select your country of residence";
+    if (!foodPreferences) next.foodPreferences = "Please select a food preference";
+    if (!resume) next.resume = "Resume is required";
+    if (!numHacks) next.numHacks = "Please select your hackathon experience";
     if (!mlhCoc) next.mlhCoc = "You must agree to the MLH Code of Conduct";
     if (!mlhSharing) next.mlhSharing = "You must authorize MLH information sharing";
 
@@ -714,14 +727,31 @@ export default function InterestPage() {
                 {errors.tshirtSize && <p className="mt-1 text-sm text-red-600">{errors.tshirtSize}</p>}
               </div>
 
-              <InputField
-                name="Food Suggestions"
-                label="Food Suggestions"
-                placeholder="Enter food suggestions"
-                value={foodSuggestions}
-                onChange={handleTextChange(setFoodSuggestions, "foodSuggestions")}
-                error={errors.foodSuggestions}
-              />
+              <div>
+                <label htmlFor="foodPreferences" className="mb-1 block font-semibold text-gray-900">
+                  Preferences<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="foodPreferences"
+                  name="foodPreferences"
+                  value={foodPreferences}
+                  onChange={(e) => {
+                    setFoodPreferences(e.target.value);
+                    if (errors.foodPreferences) {
+                      setErrors((prev) => ({ ...prev, foodPreferences: undefined }));
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {FOOD_PREFERENCES.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {errors.foodPreferences && (
+                  <p className="mt-1 text-sm text-red-600">{errors.foodPreferences}</p>
+                )}
+              </div>
               <InputField
                 name="Food Allergy"
                 label="Food Allergy"
@@ -737,7 +767,7 @@ export default function InterestPage() {
                   htmlFor="resume"
                   className="mb-1 block font-semibold text-gray-900"
                 >
-                  Resume<span className="text-gray-400"> (Optional)</span>
+                  Resume<span className="text-red-600">*</span>
                 </label>
 
                 <input
@@ -822,20 +852,57 @@ export default function InterestPage() {
                   </button>
                 )}
 
-                {resumeError && (
+                {(resumeError || errors.resume) && (
                   <p className="mt-1 text-sm text-red-600">
-                    {resumeError}
+                    {resumeError || errors.resume}
                   </p>
                 )}
               </div>
 
+              <div>
+                <label htmlFor="numHacks" className="mb-1 block font-semibold text-gray-900">
+                  Number of Hackathons Attended<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="numHacks"
+                  name="numHacks"
+                  value={numHacks}
+                  onChange={(e) => {
+                    setNumHacks(e.target.value);
+                    if (errors.numHacks) {
+                      setErrors((prev) => ({ ...prev, numHacks: undefined }));
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {HACKATHON_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {errors.numHacks && (
+                  <p className="mt-1 text-sm text-red-600">{errors.numHacks}</p>
+                )}
+              </div>
+
               <InputField
-                name="Number of Hackathons Attended"
-                label="Number of Hackathons Attended"
-                placeholder="Enter number of hackathons attended"
-                value={numHacks}
-                onChange={handleTextChange(setNumHacks, "numHacks")}
-                error={errors.numHacks}
+                name="linkedin"
+                label="LinkedIn"
+                type="url"
+                placeholder="https://www.linkedin.com/in/your-profile"
+                value={linkedin}
+                onChange={handleTextChange(setLinkedin, "linkedin")}
+                error={errors.linkedin}
+              />
+
+              <InputField
+                name="github"
+                label="GitHub"
+                type="url"
+                placeholder="https://github.com/your-username"
+                value={github}
+                onChange={handleTextChange(setGithub, "github")}
+                error={errors.github}
               />
               <InputField
                 name="Additional Notes"
