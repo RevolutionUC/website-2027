@@ -9,14 +9,20 @@ import majors from "@/data/majors_cleaned.json";
 
 const UNIQUE_SCHOOLS = [...new Set(SCHOOLS)];
 const AGE_OPTIONS = Array.from({ length: 88 }, (_, i) => String(i + 13));
-const GRADUATION_YEARS = Array.from({ length: 7 }, (_, i) => String(2026 + i));
+const GRADUATION_YEARS = [
+  "Already graduated",
+  ...Array.from({ length: 7 }, (_, i) => String(2026 + i)),
+];
 const GENDER_OPTIONS = ["Woman", "Man", "Non-binary", "Self-describe", "Prefer not to say"];
 const ETHNICITIES = ["American Indian or Alaska Native", "Asian", "Black or African American", "Hispanic or Latino/a/x", "Middle Eastern or North African", "Native Hawaiian or Other Pacific Islander", "White", "Multiracial", "Self-describe", "Prefer not to say"];
-const TSHIRT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "Prefer not to say"];
+const TSHIRT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 const FOOD_PREFERENCES = [
-  "No preference",
+  "No restrictions",
   "Vegetarian",
   "Vegan",
+  "Pescatarian",
+  "Gluten-free / Celiac",
+  "Dairy-free",
   "Halal",
   "Kosher",
   "Other",
@@ -49,6 +55,19 @@ function formatPhone(raw: string): string {
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+}
+
+function isValidProfileUrl(value: string, domain: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.toLowerCase();
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      (hostname === domain || hostname.endsWith(`.${domain}`))
+    );
+  } catch {
+    return false;
+  }
 }
 
 interface Errors {
@@ -164,7 +183,7 @@ export default function InterestPage() {
   const [major, setMajor] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
   const [tshirtSize, setTshirtSize] = useState("");
-  const [foodPreferences, setFoodPreferences] = useState("");
+  const [foodPreferences, setFoodPreferences] = useState<string[]>([]);
   const [foodAllergy, setFoodAllergy] = useState("");
   const [resume, setResume] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState("");
@@ -277,6 +296,24 @@ export default function InterestPage() {
     }
   }
 
+  function toggleFoodPreference(option: string) {
+    setFoodPreferences((current) => {
+      if (option === "No restrictions") {
+        return current.includes(option) ? [] : [option];
+      }
+
+      const withoutNoRestrictions = current.filter(
+        (item) => item !== "No restrictions"
+      );
+      return withoutNoRestrictions.includes(option)
+        ? withoutNoRestrictions.filter((item) => item !== option)
+        : [...withoutNoRestrictions, option];
+    });
+    if (errors.foodPreferences) {
+      setErrors((prev) => ({ ...prev, foodPreferences: undefined }));
+    }
+  }
+
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const next: Errors = {};
@@ -300,10 +337,29 @@ export default function InterestPage() {
 
     if (!school) next.school = "Please select your school";
     if (!levelOfStudy) next.levelOfStudy = "Please select your level of study";
+    if (levelOfStudy === "Other" && !otherLevelOfStudy.trim()) {
+      next.levelOfStudy = "Please describe your level of study";
+    }
     if (!country) next.country = "Please select your country of residence";
-    if (!foodPreferences) next.foodPreferences = "Please select a food preference";
+    if (!gender) next.gender = "Please select your gender";
+    if (!ethnicity) next.ethnicity = "Please select your ethnicity";
+    if (!major) next.major = "Please select your major";
+    if (major === "Other" && !otherMajor.trim()) {
+      next.major = "Please enter your major";
+    }
+    if (!graduationYear) next.graduationYear = "Please select a graduation option";
+    if (!tshirtSize) next.tshirtSize = "Please select your T-shirt size";
+    if (foodPreferences.length === 0) {
+      next.foodPreferences = "Please select at least one dietary option";
+    }
     if (!resume) next.resume = "Resume is required";
     if (!numHacks) next.numHacks = "Please select your hackathon experience";
+    if (linkedin.trim() && !isValidProfileUrl(linkedin, "linkedin.com")) {
+      next.linkedin = "Enter a valid LinkedIn URL (for example, https://www.linkedin.com/in/your-name)";
+    }
+    if (github.trim() && !isValidProfileUrl(github, "github.com")) {
+      next.github = "Enter a valid GitHub URL (for example, https://github.com/your-name)";
+    }
     if (!mlhCoc) next.mlhCoc = "You must agree to the MLH Code of Conduct";
     if (!mlhSharing) next.mlhSharing = "You must authorize MLH information sharing";
 
@@ -370,7 +426,7 @@ export default function InterestPage() {
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#19E363]/10 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-lg">
+      <div className="relative w-full max-w-3xl">
         {/* Header */}
         <div className="mb-8 text-center">
           <p className="font-mono text-sm uppercase tracking-widest text-[#228CF6] mb-2">
@@ -684,7 +740,7 @@ export default function InterestPage() {
               </div>
 
               <div>
-                <label htmlFor="age" className="mb-1 block font-semibold text-gray-900">
+                <label htmlFor="gradYear" className="mb-1 block font-semibold text-gray-900">
                   Expected Graduation Year<span className="text-red-600">*</span>
                 </label>
                 <select
@@ -727,35 +783,34 @@ export default function InterestPage() {
                 {errors.tshirtSize && <p className="mt-1 text-sm text-red-600">{errors.tshirtSize}</p>}
               </div>
 
-              <div>
-                <label htmlFor="foodPreferences" className="mb-1 block font-semibold text-gray-900">
-                  Preferences<span className="text-red-600">*</span>
-                </label>
-                <select
-                  id="foodPreferences"
-                  name="foodPreferences"
-                  value={foodPreferences}
-                  onChange={(e) => {
-                    setFoodPreferences(e.target.value);
-                    if (errors.foodPreferences) {
-                      setErrors((prev) => ({ ...prev, foodPreferences: undefined }));
-                    }
-                  }}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                >
-                  <option value="" disabled>Select...</option>
+              <fieldset>
+                <legend className="mb-2 block font-semibold text-gray-900">
+                  Dietary Restrictions<span className="text-red-600">*</span>
+                </legend>
+                <p className="mb-3 text-sm text-gray-600">Select all that apply.</p>
+                <div className="grid gap-2 rounded-md border border-gray-300 bg-white p-3 sm:grid-cols-2">
                   {FOOD_PREFERENCES.map((option) => (
-                    <option key={option} value={option}>{option}</option>
+                    <label key={option} className="flex cursor-pointer items-center gap-2 text-sm text-gray-900">
+                      <input
+                        type="checkbox"
+                        name="foodPreferences"
+                        value={option}
+                        checked={foodPreferences.includes(option)}
+                        onChange={() => toggleFoodPreference(option)}
+                        className="h-4 w-4 rounded accent-[#151477]"
+                      />
+                      {option}
+                    </label>
                   ))}
-                </select>
+                </div>
                 {errors.foodPreferences && (
                   <p className="mt-1 text-sm text-red-600">{errors.foodPreferences}</p>
                 )}
-              </div>
+              </fieldset>
               <InputField
                 name="Food Allergy"
-                label="Food Allergy"
-                placeholder="Mention food allergies (if any)"
+                label="Dietary Details or Food Allergies"
+                placeholder="List allergies or explain other dietary needs (if any)"
                 value={foodAllergy}
                 onChange={handleTextChange(setFoodAllergy, "foodAllergy")}
                 error={errors.foodAllergy}
@@ -892,6 +947,14 @@ export default function InterestPage() {
                 placeholder="https://www.linkedin.com/in/your-profile"
                 value={linkedin}
                 onChange={handleTextChange(setLinkedin, "linkedin")}
+                onBlur={() => {
+                  if (linkedin.trim() && !isValidProfileUrl(linkedin, "linkedin.com")) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      linkedin: "Enter a valid LinkedIn URL (for example, https://www.linkedin.com/in/your-name)",
+                    }));
+                  }
+                }}
                 error={errors.linkedin}
               />
 
@@ -902,6 +965,14 @@ export default function InterestPage() {
                 placeholder="https://github.com/your-username"
                 value={github}
                 onChange={handleTextChange(setGithub, "github")}
+                onBlur={() => {
+                  if (github.trim() && !isValidProfileUrl(github, "github.com")) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      github: "Enter a valid GitHub URL (for example, https://github.com/your-name)",
+                    }));
+                  }
+                }}
                 error={errors.github}
               />
               <InputField
@@ -963,7 +1034,7 @@ export default function InterestPage() {
                       <span className="text-sm text-gray-900">
                         I authorize you to share my application/registration information with Major League Hacking for event administration, ranking, and administration (including the creation of linked accounts on MLH and {" "}
                         <a
-                          href="dev.to"
+                          href="https://dev.to"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#228CF6] underline hover:text-[#151477]"
