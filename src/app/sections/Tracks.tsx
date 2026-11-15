@@ -84,8 +84,8 @@ export default function Tracks() {
       <Image
         src="/boarding_pass.webp"
         alt=""
-        width={280}
-        height={280}
+        width={510}
+        height={330}
         className="absolute bottom-[-7%] left-[16%] rotate-15 w-[100px] sm:w-[180px] lg:w-[280px] h-auto"
         aria-hidden="true"
         data-speed="0.9"

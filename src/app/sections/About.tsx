@@ -12,14 +12,14 @@ export default function About() {
     >
       {/* Background clouds */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
-        <div className="absolute top-[1vh] right-[75vw] w-[20vw] min-w-[150px] opacity-70">
-          <Image src="/cloud_final4.webp" alt="" fill className="object-contain" />
+        <div className="absolute top-[1vh] right-[75vw] w-[20vw] min-w-[150px] aspect-video opacity-70">
+          <Image src="/cloud_final4.webp" alt="" fill sizes="20vw" className="object-contain" />
         </div>
-        <div className="absolute top-[2vh] left-[5vw] w-[35vw] min-w-[300px] opacity-30">
-          <Image src="/cloud_final1.webp" alt="" fill className="object-contain" />
+        <div className="absolute top-[2vh] left-[5vw] w-[35vw] min-w-[300px] aspect-video opacity-30">
+          <Image src="/cloud_final1.webp" alt="" fill sizes="35vw" className="object-contain" />
         </div>
-        <div className="absolute top-[5vh] right-[2vw] w-[10vw] min-w-[100px] opacity-60">
-          <Image src="/cloud_final3.webp" alt="" fill className="object-contain" />
+        <div className="absolute top-[5vh] right-[2vw] w-[10vw] min-w-[100px] aspect-video opacity-60">
+          <Image src="/cloud_final3.webp" alt="" fill sizes="10vw" className="object-contain" />
         </div>
       </div>
 
@@ -29,8 +29,8 @@ export default function About() {
           <Image
             src="/landing-plane.webp"
             alt="Landing Plane"
-            width={700}
-            height={300}
+            width={1366}
+            height={768}
             className="w-full h-auto"
             priority
           />
@@ -100,6 +100,7 @@ export default function About() {
           src="/cloud_final4.webp"
           alt=""
           fill
+          sizes="900px"
           className="object-contain h-auto scale-x-[-1] rotate-10"
         />
       </div>

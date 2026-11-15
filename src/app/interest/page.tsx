@@ -59,8 +59,14 @@ function isValidEmail(email: string): boolean {
 
 function isValidProfileUrl(value: string, domain: string): boolean {
   try {
-    const url = new URL(value.trim());
+    const input = value.trim();
+    const normalized = /^https?:\/\//i.test(input)
+      ? input
+      : `https://${input}`;
+
+    const url = new URL(normalized);
     const hostname = url.hostname.toLowerCase();
+
     return (
       (url.protocol === "https:" || url.protocol === "http:") &&
       (hostname === domain || hostname.endsWith(`.${domain}`))
@@ -367,12 +373,12 @@ export default function InterestPage() {
       setErrors(next);
       return;
     }
-    if(DEV_MODE){
-      // log registration data
-      console.log(firstName.trim());
-      console.log(lastName.trim());
+    // if(DEV_MODE){
+    //   // log registration data
+    //   console.log(firstName.trim());
+    //   console.log(lastName.trim());
 
-    }
+    // }
 
     const { error: dbError } = await supabase.from(REG_TABLE).insert({
       first_name: firstName.trim(),
@@ -956,6 +962,7 @@ export default function InterestPage() {
                   }
                 }}
                 error={errors.linkedin}
+                required
               />
 
               <InputField
@@ -974,6 +981,7 @@ export default function InterestPage() {
                   }
                 }}
                 error={errors.github}
+                required
               />
               <InputField
                 name="Additional Notes"
