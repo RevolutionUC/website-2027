@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
-import { supabase } from "@/lib/supabase";
+import { isValidProfileUrl } from "@/lib/validateProfile";
 import { SCHOOLS } from "./schools";
 import { COUNTRIES } from "./countries";
 import majors from "@/data/majors_cleaned.json";
@@ -43,8 +43,6 @@ const STUDY_LEVELS = [
   "Prefer not to answer",
 ];
 
-const REG_TABLE = "registrations_2027_dev_aditya_CHANGE_THIS";
-const DEV_MODE = true;
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -55,25 +53,6 @@ function formatPhone(raw: string): string {
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
-}
-
-function isValidProfileUrl(value: string, domain: string): boolean {
-  try {
-    const input = value.trim();
-    const normalized = /^https?:\/\//i.test(input)
-      ? input
-      : `https://${input}`;
-
-    const url = new URL(normalized);
-    const hostname = url.hostname.toLowerCase();
-
-    return (
-      (url.protocol === "https:" || url.protocol === "http:") &&
-      (hostname === domain || hostname.endsWith(`.${domain}`))
-    );
-  } catch {
-    return false;
-  }
 }
 
 interface Errors {
@@ -181,6 +160,7 @@ function SchoolCombobox({
 
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [age, setAge] = useState("");
@@ -210,6 +190,33 @@ export default function InterestPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const profileChecks = useRef({ linkedin: 0, github: 0 });
+
+  async function checkProfile(field: "linkedin" | "github", value: string) {
+    const version = ++profileChecks.current[field];
+    if (!value.trim()) return;
+    const label = field === "linkedin" ? "LinkedIn" : "GitHub";
+    if (!isValidProfileUrl(value, field === "linkedin" ? "linkedin.com" : "github.com")) {
+      setErrors((prev) => ({ ...prev, [field]: `Enter a valid ${label} profile URL.` }));
+      return;
+    }
+    if (field === "linkedin") {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+      return;
+    }
+    setErrors((prev) => ({ ...prev, [field]: "Checking profile..." }));
+    try {
+      const params = new URLSearchParams({ field, value });
+      const response = await fetch(`/api/hacker-interest?${params}`, { cache: "no-store" });
+      const result = await response.json();
+      if (version !== profileChecks.current[field]) return;
+      setErrors((prev) => ({ ...prev, [field]: response.ok || response.status >= 500 ? undefined : result.error || "Please check your profile URL." }));
+    } catch {
+      if (version === profileChecks.current[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
+    }
+  }
 
   const [majorSearch, setMajorSearch] = useState("");
   const [majorOpen, setMajorOpen] = useState(false);
@@ -322,6 +329,7 @@ export default function InterestPage() {
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
     const next: Errors = {};
 
     if (!firstName.trim()) next.firstName = "First name is required";
@@ -373,31 +381,51 @@ export default function InterestPage() {
       setErrors(next);
       return;
     }
-    // if(DEV_MODE){
-    //   // log registration data
-    //   console.log(firstName.trim());
-    //   console.log(lastName.trim());
-
-    // }
-
-    const { error: dbError } = await supabase.from(REG_TABLE).insert({
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      age,
-      phone,
-      email: email.trim(),
-      school,
-      level_of_study: levelOfStudy,
-      other_level_of_study: otherLevelOfStudy || null,
-      country,
-      mlh_coc: mlhCoc,
-      mlh_sharing: mlhSharing,
-      mlh_emails: mlhEmails,
-    });
-
-    if (dbError) {
-      setErrors({ email: "Something went wrong, please try again." });
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("registration", JSON.stringify({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        age: Number(age),
+        gender,
+        ethnicity,
+        phone,
+        email: email.trim().toLowerCase(),
+        school,
+        level_of_study: levelOfStudy,
+        other_level_of_study: levelOfStudy === "Other" ? otherLevelOfStudy.trim() : null,
+        major,
+        other_major: major === "Other" ? otherMajor.trim() : null,
+        country,
+        graduation_year: graduationYear,
+        tshirt_size: tshirtSize,
+        food_preferences: foodPreferences,
+        food_allergy: foodAllergy.trim() || null,
+        num_hacks: numHacks,
+        linkedin: linkedin.trim() || null,
+        github: github.trim() || null,
+        add_notes: addNotes.trim() || null,
+        mlh_coc: mlhCoc,
+        mlh_sharing: mlhSharing,
+        mlh_emails: mlhEmails,
+      }));
+      formData.append("resume", resume!);
+      const response = await fetch("/api/hacker-interest", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        const field = result.field === "linkedin" || result.field === "github" ? result.field : "email";
+        setErrors({ [field]: result.error || "Something went wrong, please try again." });
+        return;
+      }
+    } catch {
+      setErrors({ email: "Unable to submit. Please check your connection and try again." });
       return;
+    } finally {
+      setSubmitting(false);
     }
 
     setSubmitted(true);
@@ -952,15 +980,11 @@ export default function InterestPage() {
                 type="url"
                 placeholder="https://www.linkedin.com/in/your-profile"
                 value={linkedin}
-                onChange={handleTextChange(setLinkedin, "linkedin")}
-                onBlur={() => {
-                  if (linkedin.trim() && !isValidProfileUrl(linkedin, "linkedin.com")) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      linkedin: "Enter a valid LinkedIn URL (for example, https://www.linkedin.com/in/your-name)",
-                    }));
-                  }
+                onChange={(event) => {
+                  profileChecks.current.linkedin++;
+                  handleTextChange(setLinkedin, "linkedin")(event);
                 }}
+                onBlur={() => void checkProfile("linkedin", linkedin)}
                 error={errors.linkedin}
                 required
               />
@@ -971,15 +995,11 @@ export default function InterestPage() {
                 type="url"
                 placeholder="https://github.com/your-username"
                 value={github}
-                onChange={handleTextChange(setGithub, "github")}
-                onBlur={() => {
-                  if (github.trim() && !isValidProfileUrl(github, "github.com")) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      github: "Enter a valid GitHub URL (for example, https://github.com/your-name)",
-                    }));
-                  }
+                onChange={(event) => {
+                  profileChecks.current.github++;
+                  handleTextChange(setGithub, "github")(event);
                 }}
+                onBlur={() => void checkProfile("github", github)}
                 error={errors.github}
                 required
               />
@@ -1074,7 +1094,7 @@ export default function InterestPage() {
                     {errors.mlhSharing && <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhSharing}</p>}
                   </div>
 
-                  {/* Checkbox 3 - optional */}
+                  {}
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -1091,9 +1111,10 @@ export default function InterestPage() {
 
               <button
                 type="submit"
+                disabled={submitting}
                 className="mt-2 w-full rounded-md border-2 border-[#19E363] bg-[#151477] px-6 py-3 font-semibold text-[#EDF6FF] transition-all duration-200 hover:bg-[#19E363] hover:text-[#151477] active:scale-[0.98]"
               >
-                Submit
+                {submitting ? "Submitting..." : "Submit"}
               </button>
             </form>
           )}
