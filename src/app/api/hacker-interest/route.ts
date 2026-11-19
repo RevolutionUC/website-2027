@@ -95,10 +95,8 @@ export async function POST(request: Request) {
     console.error("Resume upload failed", uploadError);
     return NextResponse.json({ error: "Resume upload failed. Please try again." }, { status: 500 });
   }
-
-  // A permanent authenticated URL keeps private resumes protected and does not expire.
   data.resume_url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET}/${path}`;
-  const { error } = await supabaseAdmin.from("registrations_2027_dev_aditya").insert(data);
+  const { error } = await supabaseAdmin.from("registrations_2027").insert(data);
   if (error) {
     const { error: cleanupError } = await supabaseAdmin.storage.from(BUCKET).remove([path]);
     if (cleanupError) console.error("Resume cleanup failed", cleanupError);
