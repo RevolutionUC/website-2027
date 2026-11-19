@@ -27,6 +27,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
 
@@ -39,6 +40,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
 
@@ -51,6 +53,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
 
@@ -63,6 +66,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
 
@@ -71,10 +75,12 @@ export default function HeroSection() {
           data-speed="0.95"
         >
           <Image
-            src="/cloud_final2.webp"
+            src="/cloud_final2.webp?hero"
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
+            loading="eager"
           />
         </div>
 
@@ -83,10 +89,12 @@ export default function HeroSection() {
           data-speed="0.8"
         >
           <Image
-            src="/cloud_final1.webp"
+            src="/cloud_final1.webp?hero-lcp"
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
+            loading="eager"
           />
         </div>
 
@@ -95,10 +103,12 @@ export default function HeroSection() {
           data-speed="0.85"
         >
           <Image
-            src="/cloud_final2.webp"
+            src="/cloud_final2.webp?hero"
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
+            loading="eager"
           />
         </div>
 
@@ -111,6 +121,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
 
@@ -123,6 +134,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
 
@@ -131,10 +143,12 @@ export default function HeroSection() {
           data-speed="0.9"
         >
           <Image
-            src="/cloud_final2.webp"
+            src="/cloud_final2.webp?hero"
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
+            loading="eager"
           />
         </div>
 
@@ -147,6 +161,7 @@ export default function HeroSection() {
             alt=""
             fill
             className="object-contain"
+            sizes="30vw"
           />
         </div>
         <div
@@ -194,7 +209,7 @@ export default function HeroSection() {
               href="/interest"
               className="w-auto px-4 py-2.5 text-center text-sm md:text-base font-semibold uppercase whitespace-nowrap rounded-full text-[#EDF6FF] bg-[#151477] border-[#19E363] border-2 transition-all duration-300 hover:bg-[#19E363] hover:text-white hover:scale-[1.02] active:scale-[0.98] shadow-lg"
             >
-              HACKER INTEREST FORM
+              HACKER REGISTRATION FORM
             </a>
           </div>
         </div>

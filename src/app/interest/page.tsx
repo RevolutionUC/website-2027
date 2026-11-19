@@ -2,12 +2,33 @@
 
 import { useEffect, useRef, useState } from "react";
 import { InputField } from "@/components/ui/InputField";
-import { supabase } from "@/lib/supabase";
+import { isValidProfileUrl } from "@/lib/validateProfile";
 import { SCHOOLS } from "./schools";
 import { COUNTRIES } from "./countries";
+import majors from "@/data/majors_cleaned.json";
 
 const UNIQUE_SCHOOLS = [...new Set(SCHOOLS)];
 const AGE_OPTIONS = Array.from({ length: 88 }, (_, i) => String(i + 13));
+const GRADUATION_YEARS = [
+  "Already graduated",
+  ...Array.from({ length: 7 }, (_, i) => String(2026 + i)),
+];
+const GENDER_OPTIONS = ["Woman", "Man", "Non-binary", "Self-describe", "Prefer not to say"];
+const ETHNICITIES = ["American Indian or Alaska Native", "Asian", "Black or African American", "Hispanic or Latino/a/x", "Middle Eastern or North African", "Native Hawaiian or Other Pacific Islander", "White", "Multiracial", "Self-describe", "Prefer not to say"];
+const TSHIRT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
+const FOOD_PREFERENCES = [
+  "No restrictions",
+  "Vegetarian",
+  "Vegan",
+  "Pescatarian",
+  "Gluten-free / Celiac",
+  "Dairy-free",
+  "Halal",
+  "Kosher",
+  "Other",
+];
+const HACKATHON_OPTIONS = ["0", "1-5", "5-10", "10+"];
+const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 const STUDY_LEVELS = [
   "Less than Secondary / High School",
   "Secondary / High School",
@@ -21,6 +42,7 @@ const STUDY_LEVELS = [
   "I'm not currently a student",
   "Prefer not to answer",
 ];
+
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 10);
@@ -44,8 +66,19 @@ interface Errors {
   country?: string;
   mlhCoc?: string;
   mlhSharing?: string;
+  gender?: string;
+  ethnicity?: string;
+  major?: string;
+  graduationYear?: string;
+  tshirtSize?: string;
+  foodPreferences?: string;
+  foodAllergy?: string;
+  resume?: string;
+  numHacks?: string;
+  linkedin?: string;
+  github?: string;
+  addNotes?: string;
 }
-
 function SchoolCombobox({
   value,
   onChange,
@@ -123,11 +156,30 @@ function SchoolCombobox({
   );
 }
 
+
+
 export default function InterestPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [ethnicity, setEthnicity] = useState("");
+  const [major, setMajor] = useState("");
+  const [graduationYear, setGraduationYear] = useState("");
+  const [tshirtSize, setTshirtSize] = useState("");
+  const [foodPreferences, setFoodPreferences] = useState<string[]>([]);
+  const [foodAllergy, setFoodAllergy] = useState("");
+  const [resume, setResume] = useState<File | null>(null);
+  const [resumeError, setResumeError] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const [numHacks, setNumHacks] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [github, setGithub] = useState("");
+  const [addNotes, setAddNotes] = useState("");
+
   const [school, setSchool] = useState("");
   const [levelOfStudy, setLevelOfStudy] = useState("");
   const [otherLevelOfStudy, setOtherLevelOfStudy] = useState("");
@@ -138,6 +190,61 @@ export default function InterestPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<Errors>({});
+  const profileChecks = useRef({ linkedin: 0, github: 0 });
+
+  async function checkProfile(field: "linkedin" | "github", value: string) {
+    const version = ++profileChecks.current[field];
+    if (!value.trim()) return;
+    const label = field === "linkedin" ? "LinkedIn" : "GitHub";
+    if (!isValidProfileUrl(value, field === "linkedin" ? "linkedin.com" : "github.com")) {
+      setErrors((prev) => ({ ...prev, [field]: `Enter a valid ${label} profile URL.` }));
+      return;
+    }
+    if (field === "linkedin") {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+      return;
+    }
+    setErrors((prev) => ({ ...prev, [field]: "Checking profile..." }));
+    try {
+      const params = new URLSearchParams({ field, value });
+      const response = await fetch(`/api/hacker-interest?${params}`, { cache: "no-store" });
+      const result = await response.json();
+      if (version !== profileChecks.current[field]) return;
+      setErrors((prev) => ({ ...prev, [field]: response.ok || response.status >= 500 ? undefined : result.error || "Please check your profile URL." }));
+    } catch {
+      if (version === profileChecks.current[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
+    }
+  }
+
+  const [majorSearch, setMajorSearch] = useState("");
+  const [majorOpen, setMajorOpen] = useState(false);
+  const [otherMajor, setOtherMajor] = useState("");
+  const majorRef = useRef<HTMLDivElement>(null);
+  
+  const majorOptions = [
+  ...majors.filter((m) => m !== "Other"),
+  "Other",
+  ];
+
+  const filteredMajors = majorOptions.filter((m) =>
+  m.toLowerCase().includes(majorSearch.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        majorRef.current &&
+        !majorRef.current.contains(event.target as Node)
+      ) {
+        setMajorOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function handleNameChange(setter: (v: string) => void, field: keyof Errors) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,6 +253,42 @@ export default function InterestPage() {
       if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
     };
   }
+
+  function handleResume(file: File | undefined) {
+    if (!file) return;
+
+    if (
+      file.type !== "application/pdf" ||
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setResumeError("Please upload a PDF file.");
+      return;
+    }
+
+    if (file.size > MAX_RESUME_SIZE) {
+      setResumeError("File size must be under 5 MB.");
+      return;
+    }
+
+    setResume(file);
+    setResumeError("");
+    if (errors.resume) {
+      setErrors((prev) => ({ ...prev, resume: undefined }));
+    }
+  }
+
+  function handleTextChange(
+  setter: (v: string) => void,
+  field: keyof Errors
+) {
+  return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setter(e.target.value);
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+}
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     setPhone(formatPhone(e.target.value));
@@ -166,8 +309,27 @@ export default function InterestPage() {
     }
   }
 
+  function toggleFoodPreference(option: string) {
+    setFoodPreferences((current) => {
+      if (option === "No restrictions") {
+        return current.includes(option) ? [] : [option];
+      }
+
+      const withoutNoRestrictions = current.filter(
+        (item) => item !== "No restrictions"
+      );
+      return withoutNoRestrictions.includes(option)
+        ? withoutNoRestrictions.filter((item) => item !== option)
+        : [...withoutNoRestrictions, option];
+    });
+    if (errors.foodPreferences) {
+      setErrors((prev) => ({ ...prev, foodPreferences: undefined }));
+    }
+  }
+
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
     const next: Errors = {};
 
     if (!firstName.trim()) next.firstName = "First name is required";
@@ -189,7 +351,29 @@ export default function InterestPage() {
 
     if (!school) next.school = "Please select your school";
     if (!levelOfStudy) next.levelOfStudy = "Please select your level of study";
+    if (levelOfStudy === "Other" && !otherLevelOfStudy.trim()) {
+      next.levelOfStudy = "Please describe your level of study";
+    }
     if (!country) next.country = "Please select your country of residence";
+    if (!gender) next.gender = "Please select your gender";
+    if (!ethnicity) next.ethnicity = "Please select your ethnicity";
+    if (!major) next.major = "Please select your major";
+    if (major === "Other" && !otherMajor.trim()) {
+      next.major = "Please enter your major";
+    }
+    if (!graduationYear) next.graduationYear = "Please select a graduation option";
+    if (!tshirtSize) next.tshirtSize = "Please select your T-shirt size";
+    if (foodPreferences.length === 0) {
+      next.foodPreferences = "Please select at least one dietary option";
+    }
+    if (!resume) next.resume = "Resume is required";
+    if (!numHacks) next.numHacks = "Please select your hackathon experience";
+    if (linkedin.trim() && !isValidProfileUrl(linkedin, "linkedin.com")) {
+      next.linkedin = "Enter a valid LinkedIn URL (for example, https://www.linkedin.com/in/your-name)";
+    }
+    if (github.trim() && !isValidProfileUrl(github, "github.com")) {
+      next.github = "Enter a valid GitHub URL (for example, https://github.com/your-name)";
+    }
     if (!mlhCoc) next.mlhCoc = "You must agree to the MLH Code of Conduct";
     if (!mlhSharing) next.mlhSharing = "You must authorize MLH information sharing";
 
@@ -197,25 +381,51 @@ export default function InterestPage() {
       setErrors(next);
       return;
     }
-
-    const { error: dbError } = await supabase.from("hacker_interest").insert({
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      age,
-      phone,
-      email: email.trim(),
-      school,
-      level_of_study: levelOfStudy,
-      other_level_of_study: otherLevelOfStudy || null,
-      country,
-      mlh_coc: mlhCoc,
-      mlh_sharing: mlhSharing,
-      mlh_emails: mlhEmails,
-    });
-
-    if (dbError) {
-      setErrors({ email: "Something went wrong, please try again." });
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("registration", JSON.stringify({
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        age: Number(age),
+        gender,
+        ethnicity,
+        phone,
+        email: email.trim().toLowerCase(),
+        school,
+        level_of_study: levelOfStudy,
+        other_level_of_study: levelOfStudy === "Other" ? otherLevelOfStudy.trim() : null,
+        major,
+        other_major: major === "Other" ? otherMajor.trim() : null,
+        country,
+        graduation_year: graduationYear,
+        tshirt_size: tshirtSize,
+        food_preferences: foodPreferences,
+        food_allergy: foodAllergy.trim() || null,
+        num_hacks: numHacks,
+        linkedin: linkedin.trim() || null,
+        github: github.trim() || null,
+        add_notes: addNotes.trim() || null,
+        mlh_coc: mlhCoc,
+        mlh_sharing: mlhSharing,
+        mlh_emails: mlhEmails,
+      }));
+      formData.append("resume", resume!);
+      const response = await fetch("/api/hacker-interest", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        const field = result.field === "linkedin" || result.field === "github" ? result.field : "email";
+        setErrors({ [field]: result.error || "Something went wrong, please try again." });
+        return;
+      }
+    } catch {
+      setErrors({ email: "Unable to submit. Please check your connection and try again." });
       return;
+    } finally {
+      setSubmitting(false);
     }
 
     setSubmitted(true);
@@ -250,20 +460,20 @@ export default function InterestPage() {
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[#19E363]/10 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-lg">
+      <div className="relative w-full max-w-3xl">
         {/* Header */}
         <div className="mb-8 text-center">
           <p className="font-mono text-sm uppercase tracking-widest text-[#228CF6] mb-2">
           
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold text-[#151477] leading-tight">
-            Hacker Interest{" "}
+            Hacker Registration{" "}
             <span className="relative inline-block after:absolute after:left-0 after:-bottom-1 after:h-1 after:w-full after:bg-[#19E363]">
               Form
             </span>
           </h1>
           <p className="mt-4 text-[#151477]/70 text-base sm:text-lg">
-            We are glad to know that you&apos;re interested — please fill out the interest form below and we&apos;ll reach out when registration opens.
+            We are glad to know that you&apos;re interested — please fill out the registration form below.
           </p>
         </div>
 
@@ -335,6 +545,52 @@ export default function InterestPage() {
                 {errors.age && <p className="mt-1 text-sm text-red-600">{errors.age}</p>}
               </div>
 
+              <div>
+                <label htmlFor="gender" className="mb-1 block font-semibold text-gray-900">
+                  Gender<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={gender}
+                  onChange={(e) => {
+                    setGender(e.target.value);
+                    if (errors.gender) setErrors((prev) => ({ ...prev, gender: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.gender && <p className="mt-1 text-sm text-red-600">{errors.gender}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="ethnicity" className="mb-1 block font-semibold text-gray-900">
+                  Ethnicity<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="ethnicity"
+                  name="ethnicity"
+                  value={ethnicity}
+                  onChange={(e) => {
+                    setEthnicity(e.target.value);
+                    if (errors.ethnicity) setErrors((prev) => ({ ...prev, ethnicity: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {ETHNICITIES.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.ethnicity && <p className="mt-1 text-sm text-red-600">{errors.ethnicity}</p>}
+              </div>
+ 
+
+
               <InputField
                 name="phone"
                 label="Phone Number"
@@ -402,6 +658,99 @@ export default function InterestPage() {
                 />
               )}
 
+              
+            <div ref={majorRef} className="relative">
+              <label htmlFor="major" className="mb-1 block font-semibold text-gray-900">
+                Major<span className="text-red-600">*</span>
+              </label>
+
+              <input
+                id="major"
+                name="major"
+                type="text"
+                autoComplete="off"
+                placeholder="Search for your major..."
+                value={majorOpen ? majorSearch : major}
+                onFocus={() => {
+                  setMajorSearch("");
+                  setMajorOpen(true);
+                }}
+                onChange={(e) => {
+                  setMajorSearch(e.target.value);
+                  setMajorOpen(true);
+                  setMajor("");
+                  if (errors.major)
+                    setErrors((prev) => ({ ...prev, major: undefined }));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setMajorOpen(false);
+                }}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                role="combobox"
+                aria-expanded={majorOpen}
+                aria-controls="major-options"
+                aria-autocomplete="list"
+              />
+
+              {majorOpen && (
+                <ul
+                  id="major-options"
+                  role="listbox"
+                  className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg"
+                >
+                  {filteredMajors.length > 0 ? (
+                    filteredMajors.slice(0, 100).map((opt) => (
+                      <li key={opt} role="option" aria-selected={major === opt}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMajor(opt);
+                            setMajorSearch(opt);
+                            setMajorOpen(false);
+                            if (errors.major)
+                              setErrors((prev) => ({ ...prev, major: undefined }));
+                          }}
+                          className="w-full px-3 py-2 text-left text-gray-900 hover:bg-gray-100"
+                        >
+                          {opt}
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-3 py-2 text-gray-500">
+                      No majors found
+                    </li>
+                  )}
+                </ul>
+              )}
+
+              {errors.major && (
+                <p className="mt-1 text-sm text-red-600">{errors.major}</p>
+              )}
+            </div>
+            {major === "Other" && (
+              <div className="mt-3">
+                <label
+                  htmlFor="otherMajor"
+                  className="mb-1 block font-semibold text-gray-900"
+                >
+                  Please specify your major
+                  <span className="text-red-600">*</span>
+                </label>
+
+                <input
+                  id="otherMajor"
+                  name="otherMajor"
+                  type="text"
+                  value={otherMajor}
+                  onChange={(e) => setOtherMajor(e.target.value)}
+                  placeholder="Enter your major"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                />
+              </div>
+            )}
+
+
               <div>
                 <label htmlFor="country" className="mb-1 block font-semibold text-gray-900">
                   Country of Residence<span className="text-red-600">*</span>
@@ -423,6 +772,245 @@ export default function InterestPage() {
                 </select>
                 {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
               </div>
+
+              <div>
+                <label htmlFor="gradYear" className="mb-1 block font-semibold text-gray-900">
+                  Expected Graduation Year<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="gradYear"
+                  name="gradYear"
+                  value={graduationYear}
+                  onChange={(e) => {
+                    setGraduationYear(e.target.value);
+                    if (errors.graduationYear) setErrors((prev) => ({ ...prev, graduationYear: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {GRADUATION_YEARS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.graduationYear && <p className="mt-1 text-sm text-red-600">{errors.graduationYear}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="tshirt" className="mb-1 block font-semibold text-gray-900">
+                  T-Shirt Size<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="tshirt"
+                  name="tshirt"
+                  value={tshirtSize}
+                  onChange={(e) => {
+                    setTshirtSize(e.target.value);
+                    if (errors.tshirtSize) setErrors((prev) => ({ ...prev, tshirtSize: undefined }));
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {TSHIRT_SIZES.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                {errors.tshirtSize && <p className="mt-1 text-sm text-red-600">{errors.tshirtSize}</p>}
+              </div>
+
+              <fieldset>
+                <legend className="mb-2 block font-semibold text-gray-900">
+                  Dietary Restrictions<span className="text-red-600">*</span>
+                </legend>
+                <p className="mb-3 text-sm text-gray-600">Select all that apply.</p>
+                <div className="grid gap-2 rounded-md border border-gray-300 bg-white p-3 sm:grid-cols-2">
+                  {FOOD_PREFERENCES.map((option) => (
+                    <label key={option} className="flex cursor-pointer items-center gap-2 text-sm text-gray-900">
+                      <input
+                        type="checkbox"
+                        name="foodPreferences"
+                        value={option}
+                        checked={foodPreferences.includes(option)}
+                        onChange={() => toggleFoodPreference(option)}
+                        className="h-4 w-4 rounded accent-[#151477]"
+                      />
+                      {option}
+                    </label>
+                  ))}
+                </div>
+                {errors.foodPreferences && (
+                  <p className="mt-1 text-sm text-red-600">{errors.foodPreferences}</p>
+                )}
+              </fieldset>
+              <InputField
+                name="Food Allergy"
+                label="Dietary Details or Food Allergies"
+                placeholder="List allergies or explain other dietary needs (if any)"
+                value={foodAllergy}
+                onChange={handleTextChange(setFoodAllergy, "foodAllergy")}
+                error={errors.foodAllergy}
+              />
+
+              
+              <div>
+                <label
+                  htmlFor="resume"
+                  className="mb-1 block font-semibold text-gray-900"
+                >
+                  Resume<span className="text-red-600">*</span>
+                </label>
+
+                <input
+                  ref={resumeInputRef}
+                  id="resume"
+                  name="resume"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="sr-only"
+                  onChange={(e) => {
+                    handleResume(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => resumeInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      resumeInputRef.current?.click();
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleResume(e.dataTransfer.files[0]);
+                  }}
+                  className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+                    isDragging
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300 bg-white hover:border-gray-500"
+                  }`}
+                >
+                  {resume ? (
+                    <div className="space-y-2">
+                      <p className="font-medium text-green-700">
+                        Resume selected
+                      </p>
+                      <p className="break-all text-sm text-gray-700">
+                        {resume.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(resume.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <p className="text-sm text-blue-600">
+                        Click or drop another file to replace
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="font-medium text-gray-900">
+                        Drag and drop your resume here
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        or click to browse files
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PDF only, maximum 5 MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {resume && (
+                  <button
+                    type="button"
+                    onClick={() => setResume(null)}
+                    className="mt-2 text-sm text-red-600 hover:underline"
+                  >
+                    Remove resume
+                  </button>
+                )}
+
+                {(resumeError || errors.resume) && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {resumeError || errors.resume}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="numHacks" className="mb-1 block font-semibold text-gray-900">
+                  Number of Hackathons Attended<span className="text-red-600">*</span>
+                </label>
+                <select
+                  id="numHacks"
+                  name="numHacks"
+                  value={numHacks}
+                  onChange={(e) => {
+                    setNumHacks(e.target.value);
+                    if (errors.numHacks) {
+                      setErrors((prev) => ({ ...prev, numHacks: undefined }));
+                    }
+                  }}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                >
+                  <option value="" disabled>Select...</option>
+                  {HACKATHON_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {errors.numHacks && (
+                  <p className="mt-1 text-sm text-red-600">{errors.numHacks}</p>
+                )}
+              </div>
+
+              <InputField
+                name="linkedin"
+                label="LinkedIn"
+                type="url"
+                placeholder="https://www.linkedin.com/in/your-profile"
+                value={linkedin}
+                onChange={(event) => {
+                  profileChecks.current.linkedin++;
+                  handleTextChange(setLinkedin, "linkedin")(event);
+                }}
+                onBlur={() => void checkProfile("linkedin", linkedin)}
+                error={errors.linkedin}
+                required
+              />
+
+              <InputField
+                name="github"
+                label="GitHub"
+                type="url"
+                placeholder="https://github.com/your-username"
+                value={github}
+                onChange={(event) => {
+                  profileChecks.current.github++;
+                  handleTextChange(setGithub, "github")(event);
+                }}
+                onBlur={() => void checkProfile("github", github)}
+                error={errors.github}
+                required
+              />
+              <InputField
+                name="Additional Notes"
+                label="Additional Notes"
+                placeholder="Enter additional notes"
+                value={addNotes}
+                onChange={handleTextChange(setAddNotes, "addNotes")}
+                error={errors.addNotes}
+              />
 
               {/* MLH Partnership Section */}
               <div className="rounded-lg border border-[#B7D9FF] bg-[#EDF6FF]/60 px-4 py-4 flex flex-col gap-4">
@@ -474,7 +1062,7 @@ export default function InterestPage() {
                       <span className="text-sm text-gray-900">
                         I authorize you to share my application/registration information with Major League Hacking for event administration, ranking, and administration (including the creation of linked accounts on MLH and {" "}
                         <a
-                          href="dev.to"
+                          href="https://dev.to"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#228CF6] underline hover:text-[#151477]"
@@ -506,7 +1094,7 @@ export default function InterestPage() {
                     {errors.mlhSharing && <p className="mt-1 ml-7 text-sm text-red-600">{errors.mlhSharing}</p>}
                   </div>
 
-                  {/* Checkbox 3 - optional */}
+                  {}
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -523,9 +1111,10 @@ export default function InterestPage() {
 
               <button
                 type="submit"
+                disabled={submitting}
                 className="mt-2 w-full rounded-md border-2 border-[#19E363] bg-[#151477] px-6 py-3 font-semibold text-[#EDF6FF] transition-all duration-200 hover:bg-[#19E363] hover:text-[#151477] active:scale-[0.98]"
               >
-                Submit
+                {submitting ? "Submitting..." : "Submit"}
               </button>
             </form>
           )}

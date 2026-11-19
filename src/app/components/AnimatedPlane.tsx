@@ -46,6 +46,7 @@ export default function AnimatedPlane() {
           src="/plane.webp"
           alt=""
           fill
+          sizes="30vw"
           className="object-contain"
           priority
         />

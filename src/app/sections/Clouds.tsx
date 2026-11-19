@@ -49,7 +49,7 @@ const GsapScrollTrigger = () => {
           src="/cloud_final1.webp"
           alt="Cloud"
           width={400}
-          height={200}
+          height={225}
           priority
           className="absolute top-[-15%] left-[5%] opacity-80 w-[150px] sm:w-[250px] lg:w-[400px] h-auto"
           sizes="(max-width: 640px) 150px, (max-width: 1024px) 250px, 400px"
@@ -59,7 +59,7 @@ const GsapScrollTrigger = () => {
           src="/cloud_final1.webp"
           alt="Cloud"
           width={800}
-          height={400}
+          height={450}
           priority
           className="absolute top-[30%] left-[-10%] opacity-70 w-[250px] sm:w-[400px] lg:w-[600px] h-auto"
           sizes="(max-width: 640px) 250px, (max-width: 1024px) 400px, 600px"
