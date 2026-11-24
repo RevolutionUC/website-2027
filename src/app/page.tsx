@@ -7,6 +7,7 @@ import Stats from "@/app/sections/Stats";
 import Faq from "@/app/sections/FAQ";
 import Footer from "@/app/sections/Footer";
 import Sponsors from "./sections/Sponsors";
+import CityDrive from "@/app/sections/CityDrive";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,9 @@ export default async function Home() {
           style={{ width: "100%" }}
         />
       </a>
-      <Hero />
+
+      <CityDrive />
+      {/* <Hero />
       <Clouds />
       <About />
       <Stats />
@@ -44,6 +47,7 @@ export default async function Home() {
       <Prizes />
       <Faq />
       <Footer />
+      */}
     </>
   );
 }

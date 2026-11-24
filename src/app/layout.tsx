@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/app/components/theme-provider";
 import { GsapRouteCleanupProvider } from "@/app/components/gsap-route-cleanup";
 import ScrollSmootherWrapper from "@/app/components/ScrollSmoother";
 import "./globals.css";
+import "./sections/CityDrive.css";
 import { NavigationBar } from "@/app/components/NavigationBar";
 
 const instrumentSans = Instrument_Sans({
